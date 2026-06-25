@@ -163,9 +163,24 @@ export function WorkspaceShell({ name, email, credits, plan, sites }: WorkspaceS
         </div>
       </aside>
 
-      <main className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-16">
-        <div className="bloom bloom-closing -z-10 opacity-60" aria-hidden />
-        <div className="relative z-10 w-full max-w-[680px] text-center">
+      <main className="relative flex flex-1 flex-col overflow-hidden">
+        {/* mobile top bar — the sidebar is desktop-only */}
+        <header className="flex items-center justify-between px-5 py-3 md:hidden">
+          <div className="flex items-center gap-2 font-semibold tracking-tight">
+            <span className="brand-mark h-6 w-6" />
+            <span className="text-[16px]">Foundrr</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-border px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
+              {credits} kredit
+            </span>
+            <ProfileMenu name={name} email={email} plan={plan} credits={credits} onDashboard />
+          </div>
+        </header>
+
+        <div className="relative flex flex-1 flex-col items-center justify-start px-5 pb-16 pt-6 sm:px-6 md:justify-center md:pt-16">
+          <div className="bloom bloom-closing -z-10 opacity-60" aria-hidden />
+          <div className="relative z-10 w-full max-w-[680px] text-center">
           <h1
             className="font-semibold tracking-tight"
             style={{ fontSize: "clamp(28px, 4vw, 44px)", lineHeight: 1.05 }}
@@ -210,6 +225,36 @@ export function WorkspaceShell({ name, email, credits, plan, sites }: WorkspaceS
               </button>
             </div>
           </form>
+
+            {/* mobile: quick access to saved sites */}
+            {sites.length > 0 ? (
+              <div className="mt-6 text-left md:hidden">
+                <p className="px-1 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Saytlarım
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {sites.slice(0, 6).map((site) => {
+                    const title = site.prompt || site.name || "Adsız sayt";
+                    return (
+                      <li key={site.id}>
+                        <Link
+                          href={`/workspace/build?site=${site.id}`}
+                          className="flex items-center gap-3 rounded-xl border border-border bg-card/70 px-3 py-2.5"
+                        >
+                          <span className="brand-mark flex h-8 w-8 shrink-0 items-center justify-center text-[13px] font-semibold text-white">
+                            {(title.trim().charAt(0) || "S").toUpperCase()}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+                            {title}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null}
+          </div>
         </div>
       </main>
     </div>
