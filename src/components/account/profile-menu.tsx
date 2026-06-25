@@ -31,7 +31,9 @@ export function ProfileMenu({
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
-  const [settingsTab, setSettingsTab] = React.useState<"account" | "plan">("account");
+  const [settingsTab, setSettingsTab] = React.useState<
+    "account" | "plan" | "connections"
+  >("account");
   const [tour, setTour] = React.useState<{ plan: string; granted: number } | null>(null);
 
   const [plan_, setPlan] = React.useState(plan);
@@ -49,7 +51,7 @@ export function ProfileMenu({
   React.useEffect(() => {
     if (!onDashboard) return;
     const tab = new URLSearchParams(window.location.search).get("settings");
-    if (tab === "account" || tab === "plan") {
+    if (tab === "account" || tab === "plan" || tab === "connections") {
       setSettingsTab(tab);
       setSettingsOpen(true);
       window.history.replaceState(null, "", "/workspace");

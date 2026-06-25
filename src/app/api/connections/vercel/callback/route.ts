@@ -72,5 +72,5 @@ export async function GET(request: Request) {
     await supabase.from("connections").insert(row);
   }
 
-  return NextResponse.redirect(`${origin}/workspace?connected=vercel`);
+  return NextResponse.redirect(`${origin}/workspace?settings=connections&connected=vercel`);
 }
