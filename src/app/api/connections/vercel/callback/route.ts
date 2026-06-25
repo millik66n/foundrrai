@@ -17,9 +17,10 @@ export async function GET(request: Request) {
 
   // Always send failures to the Connections tab WITH a reason so the user (and we)
   // can see why it failed instead of it silently doing nothing.
-  const fail = (reason: string) =>
+  const fail = (reason: string, detail?: string) =>
     NextResponse.redirect(
-      `${origin}/workspace?settings=connections&connect=vercel_error&reason=${reason}`,
+      `${origin}/workspace?settings=connections&connect=vercel_error&reason=${reason}` +
+        (detail ? `&detail=${encodeURIComponent(detail.slice(0, 140))}` : ""),
     );
 
   if (!code) return fail("no_code");
@@ -36,9 +37,13 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?next=/workspace`);
   }
 
-  const redirectUri = `${origin}/api/connections/vercel/callback`;
+  // redirect_uri MUST exactly match the Integration Console's Redirect URL. Pin it
+  // via env to avoid www/non-www/origin mismatches (the usual cause of "token").
+  const redirectUri =
+    process.env.FOUNDRR_VERCEL_REDIRECT_URI ?? `${origin}/api/connections/vercel/callback`;
   let accessToken: string | null = null;
   let team: string | null = teamId;
+  let detail = "";
   try {
     const res = await fetch("https://api.vercel.com/v2/oauth/access_token", {
       method: "POST",
@@ -50,14 +55,20 @@ export async function GET(request: Request) {
         redirect_uri: redirectUri,
       }),
     });
-    const data = (await res.json()) as { access_token?: string; team_id?: string };
+    const data = (await res.json()) as {
+      access_token?: string;
+      team_id?: string;
+      error?: string;
+      error_description?: string;
+    };
     accessToken = data.access_token ?? null;
     team = data.team_id ?? teamId;
+    if (!accessToken) detail = data.error_description || data.error || `HTTP ${res.status}`;
   } catch {
-    accessToken = null;
+    detail = "network";
   }
 
-  if (!accessToken) return fail("token");
+  if (!accessToken) return fail("token", detail);
 
   let token_encrypted: string;
   try {

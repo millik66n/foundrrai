@@ -34,6 +34,8 @@ interface SettingsModalProps {
   justConnected?: string;
   /** Set when a provider connect failed — a reason code shown as an error banner. */
   connectError?: string;
+  /** The provider's raw error text (e.g. Vercel's error_description), for diagnosis. */
+  connectDetail?: string;
   onUpgraded: (plan: string, credits: number) => void;
   /** Plan/credit change that should NOT trigger the celebratory upgrade tour. */
   onPlanChanged?: (plan: string, credits: number) => void;
@@ -63,6 +65,7 @@ export function SettingsModal({
   initialTab = "account",
   justConnected,
   connectError,
+  connectDetail,
   onUpgraded,
   onPlanChanged,
   onSignOut,
@@ -295,7 +298,11 @@ export function SettingsModal({
           ) : null}
 
           {tab === "connections" ? (
-            <ConnectionsTab justConnected={justConnected} connectError={connectError} />
+            <ConnectionsTab
+              justConnected={justConnected}
+              connectError={connectError}
+              connectDetail={connectDetail}
+            />
           ) : null}
 
           {tab === "privacy" ? (
@@ -612,9 +619,11 @@ const CONNECT_ERROR_MESSAGE: Record<string, string> = {
 function ConnectionsTab({
   justConnected,
   connectError,
+  connectDetail,
 }: {
   justConnected?: string;
   connectError?: string;
+  connectDetail?: string;
 }) {
   const [connected, setConnected] = React.useState<Record<string, boolean>>(
     justConnected ? { [justConnected]: true } : {},
@@ -675,6 +684,11 @@ function ConnectionsTab({
             <p className="text-[12.5px] text-red-700/80">
               {CONNECT_ERROR_MESSAGE[connectError] ?? CONNECT_ERROR_MESSAGE.unknown}
             </p>
+            {connectDetail ? (
+              <p className="mt-1 break-words font-mono text-[11px] text-red-700/70">
+                Vercel: {connectDetail}
+              </p>
+            ) : null}
           </div>
         </div>
       ) : null}
