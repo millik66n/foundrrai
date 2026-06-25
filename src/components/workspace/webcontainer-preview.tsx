@@ -1,0 +1,214 @@
+"use client";
+
+import * as React from "react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+
+import {
+  bootContainer,
+  isIsolated,
+  killDevProcess,
+  setDevProcess,
+  toFileSystemTree,
+} from "@/lib/workspace/webcontainer";
+
+interface ProjectFile {
+  path: string;
+  content: string;
+}
+
+type Status = "booting" | "installing" | "starting" | "ready" | "error";
+
+const STATUS_LABEL: Record<Exclude<Status, "ready" | "error">, string> = {
+  booting: "Mühit hazırlanır…",
+  installing: "Paketlər yüklənir…",
+  starting: "Server işə salınır…",
+};
+
+/** Signatures of real build/compile errors in the Vite dev output. */
+const ERROR_RE =
+  /\[plugin:|\[postcss\]|Internal server error|Failed to compile|Pre-transform error|does not exist|error during (build|closeBundle)|error TS\d|✘ \[ERROR\]/i;
+
+interface WebContainerPreviewProps {
+  files: ProjectFile[];
+  device: "desktop" | "mobile";
+  /** Bumped by the parent on each new full build to force a fresh mount + reinstall. */
+  buildKey: string;
+  /** Called with the captured error text when the dev server reports a build error. */
+  onBuildError?: (error: string) => void;
+}
+
+export function WebContainerPreview({
+  files,
+  device,
+  buildKey,
+  onBuildError,
+}: WebContainerPreviewProps) {
+  const [status, setStatus] = React.useState<Status>("booting");
+  const [errorMsg, setErrorMsg] = React.useState("");
+  const [url, setUrl] = React.useState<string | null>(null);
+  const filesRef = React.useRef<ProjectFile[]>(files);
+
+  // Keep the latest error callback + a reset-able "last reported" guard in refs.
+  const onBuildErrorRef = React.useRef(onBuildError);
+  const lastReportedRef = React.useRef("");
+  React.useEffect(() => {
+    onBuildErrorRef.current = onBuildError;
+  });
+
+  // ── Boot + mount + install + run dev (once per build) ──
+  React.useEffect(() => {
+    let disposed = false;
+    filesRef.current = files;
+
+    if (!isIsolated()) {
+      setStatus("error");
+      setErrorMsg(
+        "Önizləmə üçün izolyasiya aktiv deyil. Səhifəni yenilə və ya birbaşa /workspace/build aç.",
+      );
+      return;
+    }
+
+    let buffer = "";
+    let errorTimer: ReturnType<typeof setTimeout> | null = null;
+    const scanOutput = (chunk: string) => {
+      const clean = chunk.replace(/\[[0-9;]*m/g, "");
+      buffer = (buffer + clean).slice(-4000);
+      if (!ERROR_RE.test(clean)) return;
+      if (errorTimer) clearTimeout(errorTimer);
+      errorTimer = setTimeout(() => {
+        if (disposed) return;
+        const text = buffer.trim();
+        if (text && text !== lastReportedRef.current) {
+          lastReportedRef.current = text;
+          onBuildErrorRef.current?.(text);
+        }
+      }, 700);
+    };
+
+    (async () => {
+      try {
+        setStatus("booting");
+        const container = await bootContainer();
+        if (disposed) return;
+
+        killDevProcess();
+        await container.mount(toFileSystemTree(files));
+        if (disposed) return;
+
+        container.on("server-ready", (_port, readyUrl) => {
+          if (!disposed) {
+            setUrl(readyUrl);
+            setStatus("ready");
+          }
+        });
+
+        setStatus("installing");
+        const install = await container.spawn("npm", ["install"]);
+        const installCode = await install.exit;
+        if (disposed) return;
+        if (installCode !== 0) throw new Error("Paketlər yüklənmədi (npm install).");
+
+        setStatus("starting");
+        const dev = await container.spawn("npm", ["run", "dev"]);
+        setDevProcess(dev);
+        dev.output
+          .pipeTo(
+            new WritableStream({
+              write(chunk) {
+                if (!disposed) scanOutput(chunk);
+              },
+            }),
+          )
+          .catch(() => {});
+      } catch (error) {
+        if (!disposed) {
+          setStatus("error");
+          setErrorMsg(error instanceof Error ? error.message : "Önizləmə başladıla bilmədi.");
+        }
+      }
+    })();
+
+    return () => {
+      disposed = true;
+      if (errorTimer) clearTimeout(errorTimer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buildKey]);
+
+  // ── Hot-patch changed files on edits (Vite HMR picks them up) ──
+  React.useEffect(() => {
+    const previous = filesRef.current;
+    filesRef.current = files;
+    if (status !== "ready") return;
+
+    let changed = false;
+    (async () => {
+      try {
+        const container = await bootContainer();
+        for (const file of files) {
+          const old = previous.find((p) => p.path === file.path);
+          if (old && old.content === file.content) continue;
+          changed = true;
+          const dir = file.path.split("/").slice(0, -1).join("/");
+          if (dir) await container.fs.mkdir(dir, { recursive: true }).catch(() => {});
+          await container.fs.writeFile(file.path, file.content);
+        }
+        // Allow a persistent error to re-report after a fix/edit recompiles.
+        if (changed) lastReportedRef.current = "";
+      } catch {
+        /* HMR write failed — preview will catch up on next edit */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files]);
+
+  if (status === "error") {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+          <AlertTriangle className="h-5 w-5 text-destructive" />
+        </div>
+        <p className="text-[14px] font-medium">Önizləmə açılmadı</p>
+        <p className="max-w-[340px] text-[13px] text-muted-foreground">{errorMsg}</p>
+        <p className="text-[12px] text-muted-foreground">
+          “Kod” sekmesinə keçib faylları yenə də görə bilərsən.
+        </p>
+      </div>
+    );
+  }
+
+  const isMobile = device === "mobile";
+
+  return (
+    <div className="relative flex h-full items-center justify-center overflow-auto bg-muted/40 p-4">
+      <div
+        className="relative h-full overflow-hidden rounded-xl border border-border bg-white shadow-[0_20px_50px_-30px_hsl(240_22%_13%/0.35)] transition-[max-width] duration-300"
+        style={{ maxWidth: isMobile ? 390 : "100%", width: "100%" }}
+      >
+        {url ? (
+          <iframe
+            src={url}
+            title="Sayt önizləməsi"
+            className="h-full w-full bg-white"
+            allow="cross-origin-isolated"
+          />
+        ) : null}
+
+        {status !== "ready" ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-card/95 backdrop-blur">
+            <div className="relative h-1.5 w-44 overflow-hidden rounded-full bg-border">
+              <div
+                className="h-full w-1/3 bg-gradient-to-r from-[hsl(var(--grad-blue))] via-[hsl(var(--grad-violet))] to-[hsl(var(--grad-pink))]"
+                style={{ animation: "build-shimmer 1.6s ease-in-out infinite" }}
+              />
+            </div>
+            <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+              {STATUS_LABEL[status]}
+            </p>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
