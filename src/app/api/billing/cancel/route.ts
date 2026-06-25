@@ -5,10 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 
 /**
- * Cancels the user's paid plan and downgrades them to Free immediately.
- * Remaining credits are kept. When Stripe is configured, the active
- * subscription is cancelled too (looked up by the user's email, so no stored
- * subscription id is required). Without Stripe it just flips the plan in our DB.
+ * Cancels the user's paid plan by STOPPING RENEWAL at the end of the current
+ * billing period (Stripe `cancel_at_period_end`). The user keeps Pro + their
+ * credits until then; the webhook (`customer.subscription.deleted`) flips them to
+ * Free when the period actually ends. Without a real Stripe subscription we fall
+ * back to an immediate downgrade (nothing to schedule).
  */
 export async function POST() {
   const supabase = await createClient();
@@ -29,27 +30,59 @@ export async function POST() {
     return NextResponse.json({ error: "Aktiv ödənişli plan yoxdur." }, { status: 400 });
   }
 
-  // Cancel the Stripe subscription if Stripe is wired up (best-effort).
   const secret = process.env.STRIPE_SECRET_KEY;
-  if (secret && user.email) {
+
+  if (secret) {
     try {
       const Stripe = (await import("stripe")).default;
       const stripe = new Stripe(secret);
-      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-      const customer = customers.data[0];
-      if (customer) {
-        const subs = await stripe.subscriptions.list({
-          customer: customer.id,
-          status: "active",
-          limit: 10,
+
+      // Find this user's subscription: first by our checkout-session metadata
+      // (tied to the Foundrr userId, email-independent), then by customer email.
+      let subscriptionId: string | null = null;
+      const sessions = await stripe.checkout.sessions.list({ limit: 100 });
+      const mine = sessions.data.find(
+        (s) => s.metadata?.userId === user.id && s.mode === "subscription" && s.subscription,
+      );
+      if (mine?.subscription) {
+        subscriptionId =
+          typeof mine.subscription === "string" ? mine.subscription : mine.subscription.id;
+      }
+      if (!subscriptionId && user.email) {
+        const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+        const customer = customers.data[0];
+        if (customer) {
+          const subs = await stripe.subscriptions.list({
+            customer: customer.id,
+            status: "active",
+            limit: 1,
+          });
+          subscriptionId = subs.data[0]?.id ?? null;
+        }
+      }
+
+      if (subscriptionId) {
+        const sub = await stripe.subscriptions.update(subscriptionId, {
+          cancel_at_period_end: true,
         });
-        await Promise.all(subs.data.map((s) => stripe.subscriptions.cancel(s.id)));
+        const cancelAt =
+          sub.cancel_at ??
+          (sub as unknown as { current_period_end?: number }).current_period_end ??
+          null;
+        // Keep plan = pro and keep credits; renewal is now off.
+        return NextResponse.json({
+          scheduled: true,
+          cancelAt,
+          plan: profile.plan,
+          credits: profile.credits ?? 0,
+        });
       }
     } catch {
-      // Subscription cleanup is best-effort — still downgrade locally below.
+      // Fall through to the simulated downgrade below.
     }
   }
 
+  // No real subscription found (simulated upgrade) → downgrade now, keep credits.
   const { error } = await supabase
     .from("profiles")
     .update({ plan: "free" })
@@ -57,6 +90,5 @@ export async function POST() {
   if (error) {
     return NextResponse.json({ error: "Plan ləğv edilmədi." }, { status: 500 });
   }
-
-  return NextResponse.json({ plan: "free", credits: profile.credits ?? 0 });
+  return NextResponse.json({ scheduled: false, plan: "free", credits: profile.credits ?? 0 });
 }

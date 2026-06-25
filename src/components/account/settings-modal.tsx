@@ -74,6 +74,7 @@ export function SettingsModal({
   const [upgrading, setUpgrading] = React.useState<string | null>(null);
   const [buyingPack, setBuyingPack] = React.useState<string | null>(null);
   const [cancelling, setCancelling] = React.useState(false);
+  const [cancelScheduled, setCancelScheduled] = React.useState<number | boolean | null>(null);
   const [syncing, setSyncing] = React.useState(false);
 
   React.useEffect(() => {
@@ -152,7 +153,14 @@ export function SettingsModal({
     try {
       const res = await fetch("/api/billing/cancel", { method: "POST" });
       const data = await res.json();
-      if (res.ok) onPlanChanged?.(data.plan, data.credits);
+      if (res.ok) {
+        if (data.scheduled) {
+          // Renewal stopped — keep Pro + credits until period end.
+          setCancelScheduled(data.cancelAt ?? true);
+        } else {
+          onPlanChanged?.(data.plan, data.credits);
+        }
+      }
     } finally {
       setCancelling(false);
     }
@@ -277,6 +285,7 @@ export function SettingsModal({
               upgrading={upgrading}
               buyingPack={buyingPack}
               cancelling={cancelling}
+              cancelScheduled={cancelScheduled}
               syncing={syncing}
               onUpgrade={upgrade}
               onBuyCredits={buyCredits}
@@ -324,6 +333,7 @@ function PlanTab({
   upgrading,
   buyingPack,
   cancelling,
+  cancelScheduled,
   syncing,
   onUpgrade,
   onBuyCredits,
@@ -335,6 +345,7 @@ function PlanTab({
   upgrading: string | null;
   buyingPack: string | null;
   cancelling: boolean;
+  cancelScheduled: number | boolean | null;
   syncing: boolean;
   onUpgrade: (target: "pro" | "max") => void;
   onBuyCredits: (pack: string) => void;
@@ -343,6 +354,14 @@ function PlanTab({
 }) {
   const [confirmCancel, setConfirmCancel] = React.useState(false);
   const currentRank = PLAN_RANK[plan] ?? 0;
+  const cancelDate =
+    typeof cancelScheduled === "number"
+      ? new Date(cancelScheduled * 1000).toLocaleDateString("az-AZ", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : null;
 
   return (
     <div className="max-w-[600px]">
@@ -413,12 +432,27 @@ function PlanTab({
       ) : null}
 
       {/* cancel (paid plans only) */}
-      {plan !== "free" ? (
+      {cancelScheduled ? (
+        <div className="mt-7 flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] p-4">
+          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600">
+            <Check className="h-4 w-4" strokeWidth={3} />
+          </span>
+          <div>
+            <p className="text-[14px] font-semibold text-amber-700">Yeniləmə dayandırıldı</p>
+            <p className="text-[12.5px] text-amber-700/80">
+              {cancelDate
+                ? `Pro plan ${cancelDate} tarixinədək aktiv qalır`
+                : "Pro plan cari dövrün sonunadək aktiv qalır"}{" "}
+              — kreditlərin səndə qalır, sonra avtomatik Pulsuz plana keçəcəksən.
+            </p>
+          </div>
+        </div>
+      ) : plan !== "free" ? (
         <div className="mt-7 flex flex-col gap-3 rounded-2xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[14px] font-medium">Planı ləğv et</p>
             <p className="mt-0.5 text-[12px] text-muted-foreground">
-              Pulsuz plana keç. Qalan kreditlərin saxlanılır.
+              Yeniləmə dayanır. Cari dövrün sonunadək Pro və kreditlərin qalır.
             </p>
           </div>
           {confirmCancel ? (
@@ -681,17 +715,10 @@ function ConnectionsTab({
         <p className="mt-1 text-[12px] text-muted-foreground">
           Saytın öz Vercel hesabına yayımlanır — canlı URL alırsan.
         </p>
-        <a
-          href="/api/connections/vercel/authorize"
-          className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-foreground text-[13px] font-medium text-background transition-colors hover:bg-foreground/90"
-        >
-          <svg viewBox="0 0 76 65" aria-hidden className="h-3.5 w-3.5 fill-current">
-            <path d="M37.53 0 75.06 65H0z" />
-          </svg>
-          Vercel ilə qoşul
-        </a>
-        <p className="mt-3 text-[11px] text-muted-foreground">və ya token ilə qoş:</p>
-        <div className="mt-2 flex gap-2">
+        <label className="mt-3 block text-[12px] font-medium text-foreground">
+          Vercel Access Token
+        </label>
+        <div className="mt-1.5 flex gap-2">
           <input
             type="password"
             value={vercel}
@@ -701,6 +728,26 @@ function ConnectionsTab({
           />
           <SaveBtn loading={saving === "vercel"} onClick={() => save("vercel", vercel)} />
         </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          <a
+            href="https://vercel.com/account/settings/tokens"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-primary hover:underline"
+          >
+            vercel.com/account/settings/tokens
+          </a>{" "}
+          → “Create Token” → kopyala və bura yapışdır. Ən sürətli və etibarlı yoldur.
+        </p>
+        <a
+          href="/api/connections/vercel/authorize"
+          className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <svg viewBox="0 0 76 65" aria-hidden className="h-3 w-3 fill-current">
+            <path d="M37.53 0 75.06 65H0z" />
+          </svg>
+          və ya Vercel inteqrasiyası ilə avtomatik qoşul
+        </a>
       </div>
 
       <div className="mt-4 rounded-2xl border border-border p-5">
