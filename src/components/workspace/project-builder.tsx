@@ -9,7 +9,6 @@ import {
   FileText,
   Loader2,
   Plus,
-  Rocket,
   Sparkles,
   X,
 } from "lucide-react";
@@ -628,20 +627,9 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
             <span className="brand-mark h-5 w-5 rounded-[6px]" />
             Foundrr
           </button>
-          <div className="flex items-center gap-2">
-            {phase === "built" ? (
-              <button
-                onClick={() => setPublishOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-[12px] font-medium text-background transition-colors hover:bg-foreground/90"
-              >
-                <Rocket className="h-3.5 w-3.5" />
-                Yayımla
-              </button>
-            ) : null}
-            <span className="rounded-full border border-border px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
-              {credits} kredit
-            </span>
-          </div>
+          <span className="rounded-full border border-border px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
+            {credits} kredit
+          </span>
         </header>
 
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
@@ -748,12 +736,14 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
         activeFile={activeFile}
         onSelectFile={setActiveFile}
         onBuildError={handleBuildError}
+        onPublish={() => setPublishOpen(true)}
       />
 
       <PublishPanel
         open={publishOpen}
         onClose={() => setPublishOpen(false)}
         siteId={siteId}
+        siteName={siteName}
       />
     </div>
   );

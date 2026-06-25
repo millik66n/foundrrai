@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Code2, Eye, Monitor, Smartphone } from "lucide-react";
+import { Code2, Eye, Monitor, Rocket, Smartphone } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { Phase } from "@/lib/workspace/build-session";
@@ -25,6 +25,7 @@ interface PreviewPaneProps {
   activeFile: string | null;
   onSelectFile: (path: string) => void;
   onBuildError?: (error: string) => void;
+  onPublish?: () => void;
 }
 
 export function PreviewPane({
@@ -35,6 +36,7 @@ export function PreviewPane({
   activeFile,
   onSelectFile,
   onBuildError,
+  onPublish,
 }: PreviewPaneProps) {
   const [tab, setTab] = React.useState<Tab>("preview");
   const [device, setDevice] = React.useState<Device>("desktop");
@@ -66,20 +68,31 @@ export function PreviewPane({
           {built ? siteName : "önizləmə"}
         </span>
 
-        {built && tab === "preview" ? (
-          <div className="flex items-center rounded-xl border border-border bg-card p-0.5">
-            <IconToggle
-              active={device === "desktop"}
-              onClick={() => setDevice("desktop")}
-              label="Masaüstü"
-              icon={Monitor}
-            />
-            <IconToggle
-              active={device === "mobile"}
-              onClick={() => setDevice("mobile")}
-              label="Mobil"
-              icon={Smartphone}
-            />
+        {built ? (
+          <div className="flex items-center gap-2">
+            {tab === "preview" ? (
+              <div className="flex items-center rounded-xl border border-border bg-card p-0.5">
+                <IconToggle
+                  active={device === "desktop"}
+                  onClick={() => setDevice("desktop")}
+                  label="Masaüstü"
+                  icon={Monitor}
+                />
+                <IconToggle
+                  active={device === "mobile"}
+                  onClick={() => setDevice("mobile")}
+                  label="Mobil"
+                  icon={Smartphone}
+                />
+              </div>
+            ) : null}
+            <button
+              onClick={onPublish}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground shadow-[0_10px_24px_-12px_hsl(var(--primary)/0.7)] transition-all hover:-translate-y-0.5 hover:bg-[hsl(var(--primary-hover))]"
+            >
+              <Rocket className="h-3.5 w-3.5" />
+              Yayımla
+            </button>
           </div>
         ) : (
           <span className="rounded-md bg-card px-2 py-1 font-mono text-[10px] text-muted-foreground">
