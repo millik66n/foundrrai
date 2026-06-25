@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, ExternalLink, Globe, Loader2, Rocket, X } from "lucide-react";
+import { Check, Copy, ExternalLink, Globe, Loader2, Plus, Rocket, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -119,6 +119,9 @@ export function PublishPanel({ open, onClose, siteId, siteName }: PublishPanelPr
             <StatusRow label="Supabase" sub="Form bazası (istəyə görə)" ok={!!connected.supabase} />
           </div>
 
+          {/* custom domain */}
+          <CustomDomain siteId={siteId} />
+
           {/* result */}
           {url ? (
             <div className="mt-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4">
@@ -198,6 +201,140 @@ export function PublishPanel({ open, onClose, siteId, siteName }: PublishPanelPr
         </div>
       </div>
     </div>
+  );
+}
+
+interface DomainResult {
+  domain: string;
+  verified: boolean;
+  misconfigured: boolean;
+  records: { type: string; name: string; value: string }[];
+}
+
+/** "Connect your own domain" — gets the live DNS records from Vercel and re-checks. */
+function CustomDomain({ siteId }: { siteId: string | null }) {
+  const [open, setOpen] = React.useState(false);
+  const [domain, setDomain] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [result, setResult] = React.useState<DomainResult | null>(null);
+
+  const check = async () => {
+    if (!siteId || !domain.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/domains", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId, domain }),
+      });
+      const data = await res.json();
+      if (res.ok) setResult(data as DomainResult);
+      else setError(data.error ?? "Alınmadı.");
+    } catch {
+      setError("Alınmadı.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-4 flex w-full items-center gap-2 rounded-2xl border border-dashed border-border px-4 py-3 text-[13px] font-medium text-foreground transition-colors hover:border-foreground/30 hover:bg-muted/40"
+      >
+        <Plus className="h-4 w-4 text-primary" />
+        Öz domenini bağla
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border border-border p-4">
+      <p className="text-[13px] font-medium">Öz domenin</p>
+      <p className="mt-0.5 text-[12px] text-muted-foreground">
+        Domenini yaz — qoşmaq üçün lazım olan DNS qeydlərini verək.
+      </p>
+      <div className="mt-2.5 flex gap-2">
+        <input
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          placeholder="nümunə.az"
+          className="h-10 flex-1 rounded-xl border border-border bg-background px-3 text-[13px] outline-none focus:border-[hsl(var(--ring)/0.5)]"
+        />
+        <button
+          onClick={check}
+          disabled={loading || !domain.trim()}
+          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-foreground px-4 text-[13px] font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {result ? "Yenidən yoxla" : "Bağla"}
+        </button>
+      </div>
+
+      {error ? <p className="mt-2 text-[12px] text-destructive">{error}</p> : null}
+
+      {result?.verified ? (
+        <div className="mt-3 flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] px-3 py-2.5 text-[13px] font-medium text-emerald-700">
+          <Check className="h-4 w-4" /> {result.domain} qoşuldu — sayt canlıdır!
+        </div>
+      ) : result ? (
+        <div className="mt-3">
+          <p className="text-[12px] text-muted-foreground">
+            Bu qeydləri domen provayderində (registrator) əlavə et, sonra
+            “Yenidən yoxla”ya bas:
+          </p>
+          <div className="mt-2 overflow-hidden rounded-xl border border-border">
+            <div className="grid grid-cols-[54px_1fr_1.4fr] bg-muted/50 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              <span>Tip</span>
+              <span>Ad</span>
+              <span>Dəyər</span>
+            </div>
+            {result.records.map((r, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-[54px_1fr_1.4fr] items-center gap-2 border-t border-border px-3 py-2 font-mono text-[11.5px]"
+              >
+                <span className="font-semibold">{r.type}</span>
+                <span className="truncate">{r.name}</span>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate">{r.value}</span>
+                  <CopyButton text={r.value} />
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            DNS yayılması 5 dəqiqədən bir neçə saata qədər çəkə bilər. Hazır olanda
+            domen avtomatik qoşulacaq.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [done, setDone] = React.useState(false);
+  return (
+    <button
+      type="button"
+      aria-label="Kopyala"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setDone(true);
+          setTimeout(() => setDone(false), 1400);
+        } catch {
+          /* ignore */
+        }
+      }}
+      className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+    >
+      {done ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
   );
 }
 
