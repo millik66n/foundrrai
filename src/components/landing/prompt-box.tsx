@@ -5,14 +5,16 @@ import { useRouter } from "next/navigation";
 import { ArrowUp, Mic, Paperclip, Palette, Plus } from "lucide-react";
 
 import { Chip } from "@/components/ui/chip";
-import { cn } from "@/lib/utils";
 
 const PLACEHOLDERS = [
-  "Bakıda diş klinikası üçün sayt…",
-  "Gül mağazası üçün sayt…",
-  "Rent-a-car şirkəti üçün sayt…",
-  "Restoran üçün sayt…",
-  "Barbershop üçün sayt…",
+  "Bakıda diş klinikası üçün sayt",
+  "Gül mağazası üçün çatdırılma saytı",
+  "Rent-a-car şirkəti üçün icarə saytı",
+  "Restoran üçün menyu və rezervasiya saytı",
+  "Gözəllik salonu üçün onlayn növbə saytı",
+  "Onlayn geyim mağazası",
+  "Fitnes klubu üçün sayt",
+  "Kofe evi üçün vebsayt",
 ];
 
 const CHIPS: ReadonlyArray<{ label: string; prompt: string }> = [
@@ -33,26 +35,44 @@ export function PromptBox({
 } = {}) {
   const router = useRouter();
   const [value, setValue] = React.useState("");
-  const [placeholderIndex, setPlaceholderIndex] = React.useState(0);
-  const [fading, setFading] = React.useState(false);
+  const [typed, setTyped] = React.useState("");
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
+  // Typewriter placeholder: type an idea, pause, delete it, type the next — looping.
   React.useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    let fadeTimeout: ReturnType<typeof setTimeout>;
-    const interval = setInterval(() => {
-      setFading(true);
-      fadeTimeout = setTimeout(() => {
-        setPlaceholderIndex((index) => (index + 1) % PLACEHOLDERS.length);
-        setFading(false);
-      }, 220);
-    }, 2600);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(fadeTimeout);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setTyped(PLACEHOLDERS[0]);
+      return;
+    }
+    let phrase = 0;
+    let char = 0;
+    let deleting = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      const full = PLACEHOLDERS[phrase];
+      if (!deleting) {
+        char += 1;
+        setTyped(full.slice(0, char));
+        if (char >= full.length) {
+          deleting = true;
+          timer = setTimeout(tick, 1600); // hold the full idea
+          return;
+        }
+        timer = setTimeout(tick, 45 + Math.random() * 45);
+      } else {
+        char -= 1;
+        setTyped(full.slice(0, char));
+        if (char <= 0) {
+          deleting = false;
+          phrase = (phrase + 1) % PLACEHOLDERS.length;
+          timer = setTimeout(tick, 380); // pause before the next idea
+          return;
+        }
+        timer = setTimeout(tick, 24 + Math.random() * 26);
+      }
     };
+    timer = setTimeout(tick, 700);
+    return () => clearTimeout(timer);
   }, []);
 
   const submit = React.useCallback(() => {
@@ -91,12 +111,10 @@ export function PromptBox({
           {value.length === 0 ? (
             <span
               aria-hidden
-              className={cn(
-                "pointer-events-none absolute left-1.5 top-1 text-[16px] text-muted-foreground transition-opacity duration-200",
-                fading ? "opacity-0" : "opacity-100",
-              )}
+              className="pointer-events-none absolute left-1.5 top-1 text-[16px] text-muted-foreground"
             >
-              {PLACEHOLDERS[placeholderIndex]}
+              {typed}
+              <span className="ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[3px] animate-pulse bg-muted-foreground/70 align-middle" />
             </span>
           ) : null}
 
