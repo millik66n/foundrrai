@@ -10,11 +10,11 @@ import { Reveal } from "./reveal";
 
 const CATEGORIES = [
   "Hamısı",
+  "İcarə",
+  "Restoran",
+  "Salon",
   "Klinika",
   "Mağaza",
-  "Restoran",
-  "Barbershop",
-  "İcarə",
   "E-ticarət",
 ] as const;
 

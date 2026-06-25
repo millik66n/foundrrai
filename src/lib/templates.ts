@@ -13,6 +13,33 @@ export interface TemplateMeta {
 /** Shared showcase/template metadata — used by the landing grid + /templates/[id]. */
 export const TEMPLATES: ReadonlyArray<TemplateMeta> = [
   {
+    id: "rentacar",
+    name: "Sahil Rent-a-Car",
+    domain: "sahilrent.az",
+    tag: "İcarə",
+    desc: "Avtomobil icarəsi — premium avtopark və onlayn rezervasiya.",
+    prompt:
+      "Avtomobil icarəsi şirkəti üçün premium sayt: real avtomobil şəkilləri ilə avtopark, gündəlik/həftəlik qiymətlər, icarə şərtləri, üstünlüklər və rezervasiya forması.",
+  },
+  {
+    id: "restaurant",
+    name: "Laləzar Restoran",
+    domain: "lalezar.az",
+    tag: "Restoran",
+    desc: "Restoran — menyu, qalereya və masa rezervasiyası.",
+    prompt:
+      "Azərbaycan restoranı üçün premium sayt: real yemək şəkilləri ilə menyu və qiymətlər, qalereya, haqqımızda hekayəsi, rəylər və masa rezervasiyası forması.",
+  },
+  {
+    id: "barber",
+    name: "Lümen Salon",
+    domain: "lumensalon.az",
+    tag: "Salon",
+    desc: "Gözəllik salonu — saç, dırnaq və üz baxımı, onlayn növbə.",
+    prompt:
+      "Müasir gözəllik salonu üçün zərif, premium sayt: xidmətlər və qiymətlər (saç, boyama, dırnaq, üz baxımı, kişi qulluğu), ustalar komandası, qalereya, müştəri rəyləri, iş saatları və onlayn növbə forması.",
+  },
+  {
     id: "clinic",
     name: "Dental Gülüm",
     domain: "dentalgulum.az",
@@ -29,33 +56,6 @@ export const TEMPLATES: ReadonlyArray<TemplateMeta> = [
     desc: "Çiçək mağazası — buketlər və eyni gün çatdırılma.",
     prompt:
       "Çiçək mağazası üçün zərif sayt: buket kataloqu və qiymətlər, eyni gün çatdırılma, haqqımızda bölməsi, müştəri rəyləri və sifariş forması.",
-  },
-  {
-    id: "rentacar",
-    name: "Sahil Rent-a-Car",
-    domain: "sahilrent.az",
-    tag: "İcarə",
-    desc: "Avtomobil icarəsi — axtarış, qiymətlər və rezervasiya.",
-    prompt:
-      "Avtomobil icarəsi şirkəti üçün sayt: avtomobil axtarışı, avtopark, gündəlik/həftəlik qiymətlər, icarə şərtləri, üstünlüklər və rezervasiya forması.",
-  },
-  {
-    id: "restaurant",
-    name: "Laləzar Restoran",
-    domain: "lalezar.az",
-    tag: "Restoran",
-    desc: "Restoran — menyu, qalereya və masa rezervasiyası.",
-    prompt:
-      "Azərbaycan restoranı üçün premium sayt: menyu və qiymətlər, qalereya, haqqımızda hekayəsi, rəylər və masa rezervasiyası forması.",
-  },
-  {
-    id: "barber",
-    name: "Usta Barbershop",
-    domain: "ustabarber.az",
-    tag: "Barbershop",
-    desc: "Barbershop — xidmət qiymətləri və onlayn növbə.",
-    prompt:
-      "Kişi barbershop üçün stilli, tünd dizaynlı sayt: xidmət qiymətləri, ustalar, qalereya, iş saatları və onlayn növbə forması.",
   },
   {
     id: "store",

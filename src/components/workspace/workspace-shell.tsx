@@ -3,11 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUp, LayoutGrid, Plus } from "lucide-react";
+import { ArrowUp, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ProfileMenu } from "@/components/account/profile-menu";
 import { clearSession } from "@/lib/workspace/build-session";
+import { cn } from "@/lib/utils";
 
 const PROMPT_STORAGE_KEY = "foundrr:prompt";
 
@@ -91,36 +92,54 @@ export function WorkspaceShell({ name, email, credits, plan, sites }: WorkspaceS
           Yeni sayt
         </Button>
 
-        <div className="mt-6 flex min-h-0 flex-1 flex-col px-2">
-          <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-            Saytlarım
-          </p>
+        <div className="mt-6 flex min-h-0 flex-1 flex-col px-1">
+          <div className="flex items-center justify-between px-1">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+              Saytlarım
+            </p>
+            {sites.length > 0 ? (
+              <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                {sites.length}
+              </span>
+            ) : null}
+          </div>
+
           {sites.length === 0 ? (
-            <p className="mt-3 text-[13px] text-muted-foreground">
+            <p className="mt-3 px-1 text-[13px] leading-relaxed text-muted-foreground">
               Hələ saytın yoxdur. Bir cümlə yazıb ilkini qur.
             </p>
           ) : (
-            <ul className="mt-3 -mx-1 flex-1 space-y-0.5 overflow-y-auto pr-0.5">
-              {sites.map((site) => (
-                <li key={site.id}>
-                  <Link
-                    href={`/workspace/build?site=${site.id}`}
-                    className="group flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-muted"
-                  >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:bg-card">
-                      <LayoutGrid className="h-3.5 w-3.5" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-medium text-foreground">
-                        {site.prompt || site.name || "Adsız sayt"}
+            <ul className="mt-2 flex-1 space-y-1 overflow-y-auto pr-0.5">
+              {sites.map((site) => {
+                const title = site.prompt || site.name || "Adsız sayt";
+                const live = site.status === "deployed";
+                return (
+                  <li key={site.id}>
+                    <Link
+                      href={`/workspace/build?site=${site.id}`}
+                      className="group flex items-center gap-3 rounded-xl border border-transparent px-2 py-2 transition-all hover:border-border hover:bg-card hover:shadow-[0_8px_24px_-16px_hsl(240_22%_13%/0.3)]"
+                    >
+                      <span className="brand-mark flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-semibold text-white">
+                        {(title.trim().charAt(0) || "S").toUpperCase()}
                       </span>
-                      <span className="block truncate text-[11px] text-muted-foreground">
-                        {(site.status && STATUS_LABEL[site.status]) || site.status || "—"}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] font-medium text-foreground">
+                          {title}
+                        </span>
+                        <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <span
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full",
+                              live ? "bg-emerald-500" : "bg-[hsl(var(--grad-violet))]",
+                            )}
+                          />
+                          {(site.status && STATUS_LABEL[site.status]) || site.status || "—"}
+                        </span>
                       </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

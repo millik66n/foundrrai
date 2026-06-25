@@ -1,215 +1,435 @@
 import {
-  Scissors,
   Phone,
+  Mail,
   MapPin,
+  Star,
+  Check,
+  ArrowRight,
+  ArrowUpRight,
+  Menu,
   Clock,
+  Calendar,
   Aperture,
   Share2,
-  Star,
-  Menu,
-  ArrowRight,
-  Check,
+  Quote,
+  Sparkles,
+  Scissors,
 } from "lucide-react";
 
 export function BarberSite() {
-  const services = [
-    { name: "Saç kəsimi", desc: "Klassik və modern saç kəsimi, fade, taper", price: "20" },
-    { name: "Saqqal düzəltmə", desc: "Forma verilməsi, kontur və yağ qulluğu", price: "15" },
-    { name: "Üz qırxma", desc: "İsti dəsmal və ülgüc ilə klassik qırxma", price: "12" },
-    { name: "Saç + Saqqal", desc: "Tam dəyişim — kombo paket", price: "30" },
-    { name: "Uşaq saç kəsimi", desc: "12 yaşa qədər, sakit mühit", price: "15" },
-    { name: "Saç boyama", desc: "Kül, qara və ya təbii tonlar", price: "35" },
+  const HERO =
+    "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1600&q=80";
+  const G1 =
+    "https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?w=800&q=80";
+  const G2 =
+    "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=800&q=80";
+  const G3 =
+    "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80";
+  const G4 =
+    "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&q=80";
+  const ABOUT =
+    "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=1600&q=80";
+
+  const navLinks = [
+    { label: "Xidmətlər", href: "#xidmetler" },
+    { label: "Ustalar", href: "#ustalar" },
+    { label: "Qalereya", href: "#qalereya" },
+    { label: "Rəylər", href: "#reyler" },
+    { label: "Əlaqə", href: "#elaqe" },
   ];
 
-  const barbers = [
-    { name: "Elvin Məmmədov", role: "Baş usta", exp: "12 il təcrübə", initials: "EM" },
-    { name: "Rəşad Quliyev", role: "Saqqal ustası", exp: "8 il təcrübə", initials: "RQ" },
-    { name: "Tural Hüseynov", role: "Stilist", exp: "6 il təcrübə", initials: "TH" },
+  const services = [
+    {
+      cat: "Saç",
+      items: [
+        { name: "Qadın saç kəsimi", desc: "Forma, uzunluq və üz tipinə uyğun", price: "35" },
+        { name: "Kişi saç kəsimi", desc: "Klassik, fade və müasir modellər", price: "20" },
+        { name: "Saç yığımı / fön", desc: "Tədbir və gündəlik üçün", price: "30" },
+      ],
+    },
+    {
+      cat: "Boyama",
+      items: [
+        { name: "Tam boyama", desc: "Keyfiyyətli, saçı qoruyan boyalar", price: "70" },
+        { name: "Ombre / balayaj", desc: "Təbii keçidlər, fərdi ton seçimi", price: "120" },
+        { name: "Kök boyama", desc: "Çıxan köklərin yenilənməsi", price: "45" },
+      ],
+    },
+    {
+      cat: "Baxım",
+      items: [
+        { name: "Manikür + lak", desc: "Gigiyenik manikür, gel-lak örtük", price: "40" },
+        { name: "Üz baxımı", desc: "Təmizləmə, nəmləndirmə, maska", price: "55" },
+        { name: "Kişi qulluğu", desc: "Saqqal forması və üz baxımı", price: "25" },
+      ],
+    },
+  ];
+
+  const team = [
+    { name: "Aysel Hüseynova", role: "Baş stilist · Kolorist", years: "12 il", initials: "AH" },
+    { name: "Nigar Əliyeva", role: "Saç ustası", years: "8 il", initials: "NƏ" },
+    { name: "Leyla Quliyeva", role: "Manikür ustası", years: "6 il", initials: "LQ" },
+    { name: "Murad Rəhimov", role: "Kişi qulluğu ustası", years: "9 il", initials: "MR" },
   ];
 
   const gallery = [
-    "from-amber-500/30 to-neutral-900",
-    "from-neutral-700 to-neutral-950",
-    "from-amber-600/40 to-neutral-900",
-    "from-neutral-800 to-black",
-    "from-amber-400/20 to-neutral-900",
-    "from-neutral-700 to-neutral-950",
+    { src: G1, label: "Salon interyeri" },
+    { src: G2, label: "Fön və yığım" },
+    { src: G3, label: "Atmosfer" },
+    { src: G4, label: "Kişi qulluğu" },
+  ];
+
+  const testimonials = [
+    {
+      quote:
+        "İllərdir saçımı yalnız Lümen-ə etibar edirəm. Aysel xanım rəngi tam istədiyim kimi tutdu, nəticə möhtəşəm idi.",
+      name: "Günel Məmmədova",
+      role: "Daimi müştəri",
+    },
+    {
+      quote:
+        "Çox təmiz və rahat mühit. Onlayn növbə sistemi gözləmədən qəbul olunmağa imkan verdi. Tövsiyə edirəm.",
+      name: "Rəşad Səfərov",
+      role: "Kişi qulluğu",
+    },
+    {
+      quote:
+        "Balayaj üçün gəlmişdim — keçidlər çox təbii alındı. Komanda işinə peşəkar yanaşır, ətraf isə zövqlü.",
+      name: "Səbinə Vəliyeva",
+      role: "Boyama",
+    },
+  ];
+
+  const stats = [
+    { value: "9 il", label: "Bakıda təcrübə" },
+    { value: "12K+", label: "Məmnun müştəri" },
+    { value: "4.9", label: "Orta reytinq" },
+    { value: "8", label: "Peşəkar usta" },
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-950 font-sans text-neutral-100 antialiased">
-      {/* NAV */}
-      <header className="sticky top-0 z-50 border-b border-neutral-800/80 bg-neutral-950/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+    <div className="min-h-screen bg-stone-50 font-sans text-stone-900 antialiased">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-stone-200/70 bg-stone-50/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <a href="#" className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-md bg-amber-500 text-neutral-950">
-              <Scissors className="h-5 w-5" strokeWidth={2.5} />
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-stone-900 text-stone-50">
+              <Scissors className="h-4 w-4" />
             </span>
-            <span className="text-xl font-black uppercase tracking-widest">
-              Usta<span className="text-amber-500">.</span>
+            <span className="text-lg font-semibold tracking-tight">
+              Lümen <span className="font-light text-stone-500">Salon</span>
             </span>
           </a>
-          <nav className="hidden items-center gap-8 text-sm font-semibold uppercase tracking-wider text-neutral-300 md:flex">
-            <a href="#xidmetler" className="transition hover:text-amber-500">Xidmətlər</a>
-            <a href="#ustalar" className="transition hover:text-amber-500">Ustalar</a>
-            <a href="#qalereya" className="transition hover:text-amber-500">Qalereya</a>
-            <a href="#novbe" className="transition hover:text-amber-500">Əlaqə</a>
+
+          <nav className="hidden items-center gap-8 md:flex">
+            {navLinks.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                className="text-sm font-medium text-stone-600 transition-colors hover:text-stone-900"
+              >
+                {l.label}
+              </a>
+            ))}
           </nav>
-          <a
-            href="#novbe"
-            className="hidden items-center gap-2 rounded-md bg-amber-500 px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-neutral-950 transition hover:bg-amber-400 md:flex"
-          >
-            Onlayn növbə
-          </a>
-          <button type="button" className="text-neutral-200 md:hidden" aria-label="Menyu">
-            <Menu className="h-7 w-7" />
-          </button>
+
+          <div className="flex items-center gap-3">
+            <a
+              href="#novbe"
+              className="hidden items-center gap-1.5 rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-stone-50 transition-colors hover:bg-stone-800 sm:inline-flex"
+            >
+              Onlayn növbə
+              <ArrowRight className="h-3.5 w-3.5" />
+            </a>
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 text-stone-700 md:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative overflow-hidden border-b border-neutral-800">
-        <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-40 -left-20 h-96 w-96 rounded-full bg-amber-700/10 blur-3xl" />
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:py-28">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-400">
-              <Star className="h-3.5 w-3.5 fill-amber-400" /> Bakının ən yaxşı barbershop'u
-            </span>
-            <h1 className="mt-6 text-5xl font-black uppercase leading-[0.95] tracking-tight sm:text-7xl">
-              Usta
-              <br />
-              <span className="text-amber-500">Barber</span>
-            </h1>
-            <p className="mt-6 max-w-md text-lg leading-relaxed text-neutral-400">
-              Ənənəvi ülgüc, müasir stil. Peşəkar ustalar əlində kişi obrazına dəyər
-              veririk. Onlayn növbə tut — gözləmə yoxdur.
-            </p>
-            <div className="mt-9 flex flex-col gap-4 sm:flex-row">
-              <a
-                href="#novbe"
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-amber-500 px-7 py-3.5 text-sm font-bold uppercase tracking-wider text-neutral-950 transition hover:bg-amber-400"
-              >
-                Onlayn növbə <ArrowRight className="h-4 w-4" />
-              </a>
-              <a
-                href="#xidmetler"
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-neutral-700 px-7 py-3.5 text-sm font-bold uppercase tracking-wider text-neutral-200 transition hover:border-amber-500 hover:text-amber-500"
-              >
-                Qiymətlərə bax
-              </a>
-            </div>
-            <div className="mt-12 flex gap-10">
-              <div>
-                <p className="text-3xl font-black text-amber-500">12+</p>
-                <p className="text-xs uppercase tracking-wider text-neutral-500">İl təcrübə</p>
-              </div>
-              <div>
-                <p className="text-3xl font-black text-amber-500">8K+</p>
-                <p className="text-xs uppercase tracking-wider text-neutral-500">Məmnun müştəri</p>
-              </div>
-              <div>
-                <p className="text-3xl font-black text-amber-500">4.9</p>
-                <p className="text-xs uppercase tracking-wider text-neutral-500">Reytinq</p>
-              </div>
-            </div>
-          </div>
+      {/* Hero */}
+      <section className="relative">
+        <div className="relative h-[640px] w-full overflow-hidden">
+          <img src={HERO} alt="" className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-950/45 to-stone-950/20" />
+          <div className="absolute inset-0 bg-gradient-to-r from-stone-950/55 to-transparent" />
 
-          <div className="relative">
-            <div className="relative mx-auto aspect-[4/5] w-full max-w-md overflow-hidden rounded-2xl border border-neutral-800 bg-gradient-to-br from-neutral-800 via-neutral-900 to-black">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(245,158,11,0.18),transparent_55%)]" />
-              <div className="absolute left-6 top-6 flex h-16 w-16 items-center justify-center rounded-xl bg-amber-500 text-neutral-950">
-                <Scissors className="h-8 w-8" strokeWidth={2.5} />
+          <div className="absolute inset-0">
+            <div className="mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-20">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm">
+                <Sparkles className="h-3.5 w-3.5" />
+                Bakının premium saç & gözəllik salonu
               </div>
-              <div className="absolute bottom-6 left-6 right-6">
-                <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-500">Est. 2013</p>
-                <p className="mt-2 text-4xl font-black uppercase leading-none tracking-tight">
-                  Kişi<br />stili
-                </p>
-              </div>
-            </div>
-            <div className="absolute -bottom-5 -left-4 hidden rounded-xl border border-neutral-800 bg-neutral-900 px-5 py-4 shadow-xl sm:block">
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-amber-500" />
-                <div>
-                  <p className="text-sm font-bold">Hər gün açıq</p>
-                  <p className="text-xs text-neutral-500">10:00 — 22:00</p>
-                </div>
+
+              <h1 className="mt-6 max-w-3xl text-5xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl">
+                Gözəlliyiniz üçün
+                <span className="block font-light italic text-stone-200">
+                  incə bir toxunuş
+                </span>
+              </h1>
+
+              <p className="mt-6 max-w-xl text-lg font-light leading-relaxed text-stone-200">
+                Saç, boyama, dırnaq və üz baxımı — təcrübəli ustalar, zövqlü
+                mühit və hər müştəriyə fərdi yanaşma. Növbənizi onlayn təyin edin.
+              </p>
+
+              <div className="mt-9 flex flex-wrap items-center gap-4">
+                <a
+                  href="#novbe"
+                  className="inline-flex items-center gap-2 rounded-full bg-stone-50 px-7 py-3.5 text-sm font-semibold text-stone-900 transition-transform hover:-translate-y-0.5"
+                >
+                  Onlayn növbə tut
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+                <a
+                  href="#xidmetler"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/30 px-7 py-3.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                >
+                  Xidmətlərə bax
+                </a>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* XIDMƏTLƏR */}
-      <section id="xidmetler" className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
-        <div className="mb-14 max-w-2xl">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-500">Xidmətlər</p>
-          <h2 className="mt-3 text-4xl font-black uppercase tracking-tight sm:text-5xl">
-            Xidmətlər və qiymət
-          </h2>
-          <p className="mt-4 text-neutral-400">
-            Bütün xidmətlər təcrübəli ustalar tərəfindən, premium məhsullarla həyata keçirilir.
-          </p>
-        </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((s) => (
-            <div
-              key={s.name}
-              className="group flex flex-col justify-between rounded-xl border border-neutral-800 bg-neutral-900/50 p-7 transition hover:border-amber-500/60 hover:bg-neutral-900"
-            >
-              <div>
-                <div className="flex items-start justify-between">
-                  <h3 className="text-xl font-bold">{s.name}</h3>
-                  <span className="rounded-md bg-amber-500/10 px-3 py-1 text-lg font-black text-amber-500">
-                    {s.price} ₼
-                  </span>
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-neutral-400">{s.desc}</p>
+      {/* Stats strip */}
+      <section className="border-b border-stone-200 bg-white">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-stone-200 px-6 md:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="px-4 py-8 text-center">
+              <div className="text-3xl font-semibold tracking-tight text-stone-900">
+                {s.value}
               </div>
-              <a
-                href="#novbe"
-                className="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-neutral-500 transition group-hover:text-amber-500"
-              >
-                Növbə tut <ArrowRight className="h-4 w-4" />
-              </a>
+              <div className="mt-1 text-sm text-stone-500">{s.label}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* USTALAR */}
-      <section id="ustalar" className="border-y border-neutral-800 bg-neutral-900/40">
-        <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
-          <div className="mb-14 max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-500">Komanda</p>
-            <h2 className="mt-3 text-4xl font-black uppercase tracking-tight sm:text-5xl">
-              Ustalarımız
+      {/* Services */}
+      <section id="xidmetler" className="mx-auto max-w-7xl px-6 py-24">
+        <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-rose-400">
+              <span className="h-px w-8 bg-rose-300" />
+              Xidmətlər
+            </div>
+            <h2 className="mt-4 max-w-xl text-4xl font-semibold tracking-tight text-stone-900 sm:text-5xl">
+              Hər detalda zövq və qayğı
             </h2>
-            <p className="mt-4 text-neutral-400">
-              Hər bir usta öz sahəsinin peşəkarıdır — sənə yaraşan obrazı birlikdə tapaq.
-            </p>
           </div>
-          <div className="grid gap-7 md:grid-cols-3">
-            {barbers.map((b) => (
-              <div
-                key={b.name}
-                className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950"
-              >
-                <div className="relative flex aspect-square items-center justify-center bg-gradient-to-br from-neutral-800 to-black">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(245,158,11,0.15),transparent_60%)]" />
-                  <span className="text-6xl font-black uppercase tracking-tight text-amber-500/90">
-                    {b.initials}
+          <p className="max-w-sm text-sm leading-relaxed text-stone-500">
+            Bütün xidmətlər premium məhsullar və steril alətlərlə həyata
+            keçirilir. Qiymətlər başlanğıc dəyəri göstərir.
+          </p>
+        </div>
+
+        <div className="mt-14 grid gap-6 lg:grid-cols-3">
+          {services.map((group) => (
+            <div
+              key={group.cat}
+              className="rounded-2xl border border-stone-200 bg-white p-7 shadow-sm transition-shadow hover:shadow-md"
+            >
+              <div className="flex items-center justify-between border-b border-stone-100 pb-4">
+                <h3 className="text-lg font-semibold tracking-tight text-stone-900">
+                  {group.cat}
+                </h3>
+                <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-medium text-rose-500">
+                  {group.items.length} xidmət
+                </span>
+              </div>
+              <ul className="mt-5 space-y-5">
+                {group.items.map((it) => (
+                  <li key={it.name} className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-medium text-stone-900">
+                        {it.name}
+                      </div>
+                      <div className="mt-0.5 text-xs leading-relaxed text-stone-500">
+                        {it.desc}
+                      </div>
+                    </div>
+                    <div className="whitespace-nowrap text-sm font-semibold text-stone-900">
+                      {it.price} <span className="text-stone-400">₼</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* About */}
+      <section className="bg-white">
+        <div className="mx-auto grid max-w-7xl items-center gap-14 px-6 py-24 lg:grid-cols-2">
+          <div className="relative">
+            <div className="overflow-hidden rounded-2xl">
+              <img src={ABOUT} alt="" className="h-[520px] w-full object-cover" />
+            </div>
+            <div className="absolute -bottom-6 -right-6 hidden w-56 rounded-2xl border border-stone-200 bg-stone-50 p-5 shadow-lg sm:block">
+              <div className="flex items-center gap-1 text-rose-400">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Star key={i} className="h-4 w-4 fill-current" />
+                ))}
+              </div>
+              <p className="mt-2 text-sm font-medium leading-snug text-stone-700">
+                “Şəhərin ən rahat salonu.”
+              </p>
+              <p className="mt-1 text-xs text-stone-400">— 1 200+ rəy əsasında</p>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-rose-400">
+              <span className="h-px w-8 bg-rose-300" />
+              Haqqımızda
+            </div>
+            <h2 className="mt-4 text-4xl font-semibold tracking-tight text-stone-900 sm:text-5xl">
+              2017-dən bəri
+              <span className="block font-light italic text-stone-500">
+                gözəlliyə xidmət
+              </span>
+            </h2>
+            <p className="mt-6 text-base leading-relaxed text-stone-600">
+              Lümen Salon Bakının mərkəzində, sakit və işıqlı bir məkanda
+              qurulub. Komandamız hər müştəriyə tələsmədən, fərdi yanaşır —
+              məqsədimiz sizi yalnız gözəl deyil, həm də özünüzü yaxşı hiss
+              etdirməkdir.
+            </p>
+            <ul className="mt-8 space-y-4">
+              {[
+                "Beynəlxalq markalı, saçı qoruyan məhsullar",
+                "Steril alətlər və gigiyena standartları",
+                "Fərdi konsultasiya və ton seçimi",
+                "Rahat onlayn növbə sistemi",
+              ].map((f) => (
+                <li key={f} className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-stone-900 text-stone-50">
+                    <Check className="h-3.5 w-3.5" />
                   </span>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold">{b.name}</h3>
-                  <p className="mt-1 text-sm font-semibold uppercase tracking-wider text-amber-500">
-                    {b.role}
-                  </p>
-                  <p className="mt-2 flex items-center gap-2 text-sm text-neutral-400">
-                    <Check className="h-4 w-4 text-amber-500" /> {b.exp}
-                  </p>
+                  <span className="text-sm text-stone-700">{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Team */}
+      <section id="ustalar" className="mx-auto max-w-7xl px-6 py-24">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-rose-400">
+            <span className="h-px w-8 bg-rose-300" />
+            Ustalar
+            <span className="h-px w-8 bg-rose-300" />
+          </div>
+          <h2 className="mt-4 text-4xl font-semibold tracking-tight text-stone-900 sm:text-5xl">
+            İşinə aşiq komanda
+          </h2>
+        </div>
+
+        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {team.map((m) => (
+            <div
+              key={m.name}
+              className="group rounded-2xl border border-stone-200 bg-white p-7 text-center transition-shadow hover:shadow-md"
+            >
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-stone-100 text-xl font-semibold tracking-tight text-stone-700 transition-colors group-hover:bg-stone-900 group-hover:text-stone-50">
+                {m.initials}
+              </div>
+              <h3 className="mt-5 text-base font-semibold tracking-tight text-stone-900">
+                {m.name}
+              </h3>
+              <p className="mt-1 text-sm text-rose-400">{m.role}</p>
+              <p className="mt-2 text-xs text-stone-400">{m.years} təcrübə</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Gallery */}
+      <section id="qalereya" className="bg-white py-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-rose-400">
+                <span className="h-px w-8 bg-rose-300" />
+                Qalereya
+              </div>
+              <h2 className="mt-4 text-4xl font-semibold tracking-tight text-stone-900 sm:text-5xl">
+                Salondan görüntülər
+              </h2>
+            </div>
+            <a
+              href="#"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-stone-700 hover:text-stone-900"
+            >
+              Instagram-da daha çox
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+          </div>
+
+          <div className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {gallery.map((g, i) => (
+              <div
+                key={i}
+                className={`group relative h-72 overflow-hidden rounded-2xl ${
+                  i === 0 ? "col-span-2 row-span-2 lg:col-span-2 lg:h-full" : ""
+                }`}
+              >
+                <img
+                  src={g.src}
+                  alt=""
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                <span className="absolute bottom-4 left-4 text-sm font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  {g.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section id="reyler" className="bg-stone-900 py-24 text-stone-50">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-rose-300">
+              <span className="h-px w-8 bg-rose-400/50" />
+              Rəylər
+              <span className="h-px w-8 bg-rose-400/50" />
+            </div>
+            <h2 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
+              Müştərilərimiz nə deyir
+            </h2>
+          </div>
+
+          <div className="mt-14 grid gap-6 lg:grid-cols-3">
+            {testimonials.map((t) => (
+              <div
+                key={t.name}
+                className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm"
+              >
+                <Quote className="h-7 w-7 text-rose-300/70" />
+                <p className="mt-5 text-base font-light leading-relaxed text-stone-200">
+                  {t.quote}
+                </p>
+                <div className="mt-7 flex items-center gap-3 border-t border-white/10 pt-5">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-stone-700 text-sm font-semibold">
+                    {t.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">{t.name}</div>
+                    <div className="text-xs text-stone-400">{t.role}</div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -217,197 +437,201 @@ export function BarberSite() {
         </div>
       </section>
 
-      {/* QALEREYA */}
-      <section id="qalereya" className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
-        <div className="mb-14 max-w-2xl">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-500">Qalereya</p>
-          <h2 className="mt-3 text-4xl font-black uppercase tracking-tight sm:text-5xl">
-            İşlərimiz
-          </h2>
-          <p className="mt-4 text-neutral-400">
-            Salonumuzun atmosferi və ustalarımızın əl işlərindən bəzi anlar.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-          {gallery.map((g, i) => (
-            <div
-              key={i}
-              className={`group relative aspect-square overflow-hidden rounded-xl border border-neutral-800 bg-gradient-to-br ${g}`}
-            >
-              <div className="absolute inset-0 flex items-center justify-center opacity-30 transition group-hover:opacity-60">
-                <Scissors className="h-10 w-10 text-amber-500" />
+      {/* Booking */}
+      <section id="novbe" className="bg-white py-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="overflow-hidden rounded-3xl border border-stone-200 bg-stone-50 shadow-sm">
+            <div className="grid lg:grid-cols-2">
+              <div className="relative hidden lg:block">
+                <img src={G2} alt="" className="h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/40 to-transparent" />
               </div>
-              <span className="absolute bottom-3 left-3 text-xs font-bold uppercase tracking-widest text-neutral-300">
-                Usta №{i + 1}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
 
-      {/* ONLAYN NÖVBƏ FORM */}
-      <section id="novbe" className="border-y border-neutral-800 bg-neutral-900/40">
-        <div className="mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:py-28">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-amber-500">Onlayn növbə</p>
-            <h2 className="mt-3 text-4xl font-black uppercase tracking-tight sm:text-5xl">
-              Növbəni indi tut
-            </h2>
-            <p className="mt-4 max-w-md text-neutral-400">
-              Formu doldur, ustanı və vaxtı seç. Təsdiq üçün səninlə əlaqə saxlayacağıq.
-            </p>
-            <div className="mt-10 space-y-5">
-              <div className="flex items-center gap-4">
-                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
-                  <Phone className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-sm text-neutral-500">Telefon</p>
-                  <p className="font-bold">+994 50 555 12 34</p>
+              <div className="p-10 sm:p-14">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-rose-400">
+                  <span className="h-px w-8 bg-rose-300" />
+                  Onlayn növbə
                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
-                  <MapPin className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-sm text-neutral-500">Ünvan</p>
-                  <p className="font-bold">Nizami küç. 22, Bakı</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
-                  <Clock className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-sm text-neutral-500">İş saatları</p>
-                  <p className="font-bold">Hər gün 10:00 — 22:00</p>
-                </div>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">
+                  Növbənizi təyin edin
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-stone-500">
+                  Formu doldurun — ustamız sizə ən qısa zamanda zəng vurub vaxtı
+                  təsdiqləsin.
+                </p>
+
+                <form className="mt-8 space-y-5">
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-stone-600">
+                        Ad, soyad
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Aysel Məmmədova"
+                        className="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-900 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-stone-600">
+                        Telefon
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="+994 50 123 45 67"
+                        className="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-stone-600">
+                      Xidmət
+                    </label>
+                    <select className="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 focus:border-stone-900 focus:outline-none">
+                      <option>Saç kəsimi</option>
+                      <option>Boyama / balayaj</option>
+                      <option>Manikür</option>
+                      <option>Üz baxımı</option>
+                      <option>Kişi qulluğu</option>
+                    </select>
+                  </div>
+
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-stone-600">
+                        Tarix
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="25 İyun"
+                          className="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 pr-10 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-900 focus:outline-none"
+                        />
+                        <Calendar className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-stone-600">
+                        Saat
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="14:30"
+                          className="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 pr-10 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-900 focus:outline-none"
+                        />
+                        <Clock className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-stone-900 px-6 py-3.5 text-sm font-semibold text-stone-50 transition-colors hover:bg-stone-800"
+                  >
+                    Növbəni təsdiqlə
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <p className="text-center text-xs text-stone-400">
+                    Formu göndərməklə əlaqə şərtlərini qəbul edirsiniz.
+                  </p>
+                </form>
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          <form className="rounded-2xl border border-neutral-800 bg-neutral-950 p-7 sm:p-9">
-            <div className="space-y-5">
-              <div>
-                <label className="mb-2 block text-sm font-semibold uppercase tracking-wider text-neutral-400">
-                  Ad
-                </label>
-                <input
-                  type="text"
-                  placeholder="Adınız və soyadınız"
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-600 outline-none transition focus:border-amber-500"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold uppercase tracking-wider text-neutral-400">
-                  Telefon
-                </label>
-                <input
-                  type="tel"
-                  placeholder="+994 __ ___ __ __"
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder-neutral-600 outline-none transition focus:border-amber-500"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold uppercase tracking-wider text-neutral-400">
-                  Usta
-                </label>
-                <select className="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-neutral-100 outline-none transition focus:border-amber-500">
-                  <option>Elvin Məmmədov — Baş usta</option>
-                  <option>Rəşad Quliyev — Saqqal ustası</option>
-                  <option>Tural Hüseynov — Stilist</option>
-                  <option>Fərqi yoxdur</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold uppercase tracking-wider text-neutral-400">
-                  Vaxt
-                </label>
-                <input
-                  type="datetime-local"
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-neutral-100 outline-none transition focus:border-amber-500"
-                />
-              </div>
-              <button
-                type="button"
-                className="w-full rounded-lg bg-amber-500 px-6 py-4 text-sm font-bold uppercase tracking-widest text-neutral-950 transition hover:bg-amber-400"
-              >
-                Növbəni təsdiqlə
-              </button>
-              <p className="text-center text-xs text-neutral-600">
-                Formu göndərməklə əlaqə şərtləri ilə razılaşırsınız.
+      {/* Footer */}
+      <footer id="elaqe" className="bg-stone-950 text-stone-400">
+        <div className="mx-auto max-w-7xl px-6 py-16">
+          <div className="grid gap-12 lg:grid-cols-4">
+            <div className="lg:col-span-1">
+              <a href="#" className="flex items-center gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-stone-50 text-stone-900">
+                  <Scissors className="h-4 w-4" />
+                </span>
+                <span className="text-lg font-semibold tracking-tight text-stone-50">
+                  Lümen <span className="font-light text-stone-400">Salon</span>
+                </span>
+              </a>
+              <p className="mt-4 max-w-xs text-sm leading-relaxed">
+                Bakının mərkəzində premium saç və gözəllik salonu. Gözəlliyiniz
+                üçün incə bir toxunuş.
               </p>
+              <div className="mt-6 flex items-center gap-3">
+                {[Aperture, Share2].map((Icon, i) => (
+                  <a
+                    key={i}
+                    href="#"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-800 text-stone-400 transition-colors hover:border-stone-600 hover:text-stone-50"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                ))}
+              </div>
             </div>
-          </form>
-        </div>
-      </section>
 
-      {/* FOOTER */}
-      <footer className="bg-neutral-950">
-        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:px-8 md:grid-cols-4">
-          <div className="md:col-span-2">
-            <a href="#" className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-amber-500 text-neutral-950">
-                <Scissors className="h-5 w-5" strokeWidth={2.5} />
-              </span>
-              <span className="text-xl font-black uppercase tracking-widest">
-                Usta<span className="text-amber-500">.</span>
-              </span>
-            </a>
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-neutral-500">
-              Bakıda kişi gözəlliyi və üslubunun ünvanı. Ənənə və müasirliyin qovuşduğu yer.
-            </p>
-            <div className="mt-5 flex gap-3">
-              <a
-                href="#"
-                aria-label="Aperture"
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-800 text-neutral-400 transition hover:border-amber-500 hover:text-amber-500"
-              >
-                <Aperture className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
-                aria-label="Share2"
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-800 text-neutral-400 transition hover:border-amber-500 hover:text-amber-500"
-              >
-                <Share2 className="h-5 w-5" />
-              </a>
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-stone-50">
+                Naviqasiya
+              </h4>
+              <ul className="mt-4 space-y-3 text-sm">
+                {navLinks.map((l) => (
+                  <li key={l.href}>
+                    <a href={l.href} className="hover:text-stone-50">
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-stone-50">
+                İş saatları
+              </h4>
+              <ul className="mt-4 space-y-3 text-sm">
+                <li className="flex items-center justify-between gap-6">
+                  <span>B.e — Cümə</span>
+                  <span className="text-stone-300">10:00 — 21:00</span>
+                </li>
+                <li className="flex items-center justify-between gap-6">
+                  <span>Şənbə</span>
+                  <span className="text-stone-300">10:00 — 20:00</span>
+                </li>
+                <li className="flex items-center justify-between gap-6">
+                  <span>Bazar</span>
+                  <span className="text-stone-300">11:00 — 18:00</span>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-stone-50">
+                Əlaqə
+              </h4>
+              <ul className="mt-4 space-y-3 text-sm">
+                <li className="flex items-start gap-2.5">
+                  <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-300" />
+                  Nizami küç. 96, Səbail, Bakı
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Phone className="h-4 w-4 flex-shrink-0 text-rose-300" />
+                  +994 12 408 75 30
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Mail className="h-4 w-4 flex-shrink-0 text-rose-300" />
+                  salam@lumensalon.az
+                </li>
+              </ul>
             </div>
           </div>
-          <div>
-            <p className="text-sm font-bold uppercase tracking-wider text-neutral-300">İş saatları</p>
-            <ul className="mt-4 space-y-2 text-sm text-neutral-500">
-              <li className="flex justify-between gap-4">
-                <span>B.e — Cümə</span>
-                <span className="text-neutral-300">10:00 — 22:00</span>
-              </li>
-              <li className="flex justify-between gap-4">
-                <span>Şənbə</span>
-                <span className="text-neutral-300">10:00 — 23:00</span>
-              </li>
-              <li className="flex justify-between gap-4">
-                <span>Bazar</span>
-                <span className="text-neutral-300">11:00 — 21:00</span>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-sm font-bold uppercase tracking-wider text-neutral-300">Əlaqə</p>
-            <ul className="mt-4 space-y-3 text-sm text-neutral-500">
-              <li className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-amber-500" /> Nizami küç. 22, Bakı
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-amber-500" /> +994 50 555 12 34
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-neutral-800">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-6 text-xs text-neutral-600 sm:flex-row sm:px-8">
-            <p>© 2026 Usta Barbershop. Bütün hüquqlar qorunur.</p>
-            <p>Bakı, Azərbaycan</p>
+
+          <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-stone-800 pt-6 text-xs text-stone-500 sm:flex-row">
+            <span>© 2026 Lümen Salon. Bütün hüquqlar qorunur.</span>
+            <span>lumensalon.az · Bakı, Azərbaycan</span>
           </div>
         </div>
       </footer>
