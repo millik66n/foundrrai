@@ -20,7 +20,7 @@ const STEPS = [
   },
   {
     title: "Öz hesabına yayımla",
-    body: "Bir kliklə öz Vercel və ya Netlify hesabına yayımla, bazanı Supabase-ə qoş — sayt tamamilə sənindir.",
+    body: "Bir kliklə öz Vercel hesabına yayımla, bazanı Supabase-ə qoş — sayt tamamilə sənindir.",
   },
 ];
 

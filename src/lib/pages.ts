@@ -29,7 +29,7 @@ const PAGES: Record<string, InfoPage> = {
       {
         heading: "Necə fərqlənirik",
         paragraphs: [
-          "Biz hostinq və ya domen satmırıq. Saytı sənin öz Vercel və ya Netlify hesabında yayımlayır, məlumat bazasını öz Supabase hesabında qururuq — sayt tamamilə sənindir.",
+          "Biz hostinq və ya domen satmırıq. Saytı sənin öz Vercel hesabında yayımlayır, məlumat bazasını öz Supabase hesabında qururuq — sayt tamamilə sənindir.",
         ],
       },
       {
@@ -118,7 +118,7 @@ const PAGES: Record<string, InfoPage> = {
       {
         heading: "Yayımlama",
         paragraphs: [
-          "Hazır saytı öz Vercel və ya Netlify hesabına yayımlaya, məlumat bazasını öz Supabase layihənə bağlaya bilərsən.",
+          "Hazır saytı öz Vercel hesabına yayımlaya, məlumat bazasını öz Supabase layihənə bağlaya bilərsən.",
         ],
       },
     ],
@@ -224,7 +224,7 @@ const PAGES: Record<string, InfoPage> = {
       {
         heading: "Provayder açarları",
         paragraphs: [
-          "Vercel, Netlify və Supabase kimi provayder açarların şifrələnmiş şəkildə, yalnız server tərəfində saxlanılır.",
+          "Vercel və Supabase kimi provayder açarların şifrələnmiş şəkildə, yalnız server tərəfində saxlanılır.",
         ],
       },
     ],

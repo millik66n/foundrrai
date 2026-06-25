@@ -7,7 +7,7 @@ const ITEMS: ReadonlyArray<{ label: string; body: string }> = [
   },
   {
     label: "Öz hesabına yayım",
-    body: "Vercel / Netlify-ə bir kliklə. Sayt tamamilə sənin, kilid yoxdur.",
+    body: "Vercel-ə bir kliklə. Sayt tamamilə sənin, kilid yoxdur.",
   },
   {
     label: "Forma & ödəniş bazası",

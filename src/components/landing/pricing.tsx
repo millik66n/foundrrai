@@ -40,7 +40,7 @@ const PLANS: ReadonlyArray<Plan> = [
     period: "/ay",
     features: [
       "Hər ay 500 kredit",
-      "Öz Vercel/Netlify hesabına yayım",
+      "Öz Vercel hesabına yayım",
       "Brendsiz saytlar",
       "Forma bazası (Supabase)",
       "Loqo və media yükləmə",

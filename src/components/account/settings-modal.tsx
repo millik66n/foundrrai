@@ -233,7 +233,7 @@ export function SettingsModal({
               </button>
               <p className="mt-6 text-[13px] leading-relaxed text-muted-foreground">
                 Məlumatların təhlükəsiz saxlanılır. Provayder açarların (Vercel,
-                Netlify, Supabase) şifrələnir və yalnız server tərəfində istifadə olunur.
+                Supabase) şifrələnir və yalnız server tərəfində istifadə olunur.
               </p>
             </div>
           ) : null}

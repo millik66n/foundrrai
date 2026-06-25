@@ -26,7 +26,7 @@ const STEPS = [
   {
     icon: Rocket,
     title: "Öz hesabına yayımla",
-    body: "Hazır saytı öz Vercel/Netlify hesabına yayımla, bazanı Supabase-ə qoş — sayt tamamilə sənindir.",
+    body: "Hazır saytı öz Vercel hesabına yayımla, bazanı Supabase-ə qoş — sayt tamamilə sənindir.",
   },
 ];
 
