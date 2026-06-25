@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowUp,
+  BookOpen,
   Check,
   Eye,
   FileText,
@@ -30,6 +31,7 @@ import {
 } from "@/lib/workspace/build-session";
 import { BuildLog } from "@/components/workspace/build-log";
 import { CheckpointsPanel } from "@/components/workspace/checkpoints-panel";
+import { KnowledgePanel } from "@/components/workspace/knowledge-panel";
 import { PreviewPane } from "@/components/workspace/preview-pane";
 import { PublishPanel } from "@/components/workspace/publish-panel";
 import { getTemplate } from "@/lib/templates";
@@ -106,6 +108,8 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
   const [versionsOpen, setVersionsOpen] = React.useState(false);
   const [mobileView, setMobileView] = React.useState<"chat" | "preview">("chat");
   const [mode, setMode] = React.useState<"agent" | "chat">("agent");
+  const [knowledge, setKnowledge] = React.useState("");
+  const [knowledgeOpen, setKnowledgeOpen] = React.useState(false);
 
   /** Restore the live project to a previous checkpoint's file tree. */
   const restoreCheckpoint = (restored: ProjectFile[]) => {
@@ -122,6 +126,15 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
   React.useEffect(() => {
     if (phase === "built") setMobileView("preview");
   }, [phase]);
+
+  // Load this project's saved knowledge / custom instructions.
+  React.useEffect(() => {
+    if (!siteId) return;
+    fetch(`/api/sites/knowledge?siteId=${siteId}`)
+      .then((r) => r.json())
+      .then((d: { knowledge?: string }) => setKnowledge(d.knowledge ?? ""))
+      .catch(() => {});
+  }, [siteId]);
 
   /** User clicked an element in the preview — target it in the chat for an edit. */
   const onElementPick = (info: { text: string; tag: string }) => {
@@ -506,7 +519,7 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
     ]);
     setPhase("building");
     try {
-      const data = await callGenerate({ mode: "build", prompt, logoUrl, docs });
+      const data = await callGenerate({ mode: "build", prompt, logoUrl, docs, knowledge });
       const built: ProjectFile[] = data.files ?? [];
       const changes = toFileChanges(built, new Set());
       setFiles(built);
@@ -559,6 +572,7 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
         files,
         logoUrl: attachedLogo,
         docs: attachedDocs,
+        knowledge,
       });
       const changed: ProjectFile[] = data.files ?? [];
       const existing = new Set(files.map((f) => f.path));
@@ -593,7 +607,7 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
       { id: replyId, type: "reply", text: "…" },
     ]);
     try {
-      const data = await callGenerate({ mode: "chat", prompt: text, siteId, files });
+      const data = await callGenerate({ mode: "chat", prompt: text, siteId, files, knowledge });
       if (typeof data.credits === "number") setCredits(data.credits);
       patchBlock(replyId, (b) => (b.type === "reply" ? { ...b, text: data.reply ?? "—" } : b));
     } catch (error) {
@@ -698,6 +712,16 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
             Foundrr
           </button>
           <div className="flex items-center gap-2">
+            {siteId ? (
+              <button
+                onClick={() => setKnowledgeOpen(true)}
+                title="Layihə biliyi"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Bilik
+              </button>
+            ) : null}
             {phase === "built" && siteId ? (
               <button
                 onClick={() => setVersionsOpen(true)}
@@ -911,6 +935,14 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
         onClose={() => setVersionsOpen(false)}
         siteId={siteId}
         onRestore={restoreCheckpoint}
+      />
+
+      <KnowledgePanel
+        open={knowledgeOpen}
+        onClose={() => setKnowledgeOpen(false)}
+        siteId={siteId}
+        value={knowledge}
+        onSaved={setKnowledge}
       />
     </div>
   );

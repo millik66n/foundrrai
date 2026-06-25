@@ -24,6 +24,7 @@ interface GenerateBody {
   files?: Array<{ path: string; content: string }>;
   logoUrl?: string;
   docs?: Array<{ name: string; content: string }>;
+  knowledge?: string;
 }
 
 const VALID_MODES: ReadonlyArray<GenerateMode> = ["plan", "build", "edit", "fix", "chat"];
@@ -79,11 +80,15 @@ export async function POST(request: Request) {
   const docExtras = (body.docs ?? [])
     .map((d) => `# ${d.name}\n${d.content}`)
     .join("\n\n");
+  const knowledge = (body.knowledge ?? "").trim();
   const extrasSuffix =
     (body.logoUrl
       ? `\n\nİstifadəçinin loqosu (şəkil URL): ${body.logoUrl} — bu loqonu saytın header-ində logo kimi istifadə et.`
       : "") +
-    (docExtras ? `\n\nƏlavə sənədlər (kontekst üçün):\n${docExtras}` : "");
+    (docExtras ? `\n\nƏlavə sənədlər (kontekst üçün):\n${docExtras}` : "") +
+    (knowledge
+      ? `\n\nLAYİHƏ BİLİYİ / QAYDALARI — bunları HƏMİŞƏ tətbiq et (rəng, ton, brend, məzmun qaydaları):\n${knowledge}`
+      : "");
 
   const openai = new OpenAI({ apiKey });
 
@@ -121,7 +126,9 @@ export async function POST(request: Request) {
             content:
               (body.files
                 ? `Cari fayllar (kontekst):\n${JSON.stringify(body.files).slice(0, 30000)}\n\n`
-                : "") + `Sual: ${prompt}`,
+                : "") +
+              `Sual: ${prompt}` +
+              extrasSuffix,
           },
         ],
       });
