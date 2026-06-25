@@ -92,7 +92,11 @@ export function WebContainerPreview({
     onBuildErrorRef.current = onBuildError;
   });
 
-  // ── Boot + mount + install + run dev (once per build) ──
+  // A dependency change (e.g. an edit adds react-router-dom) must trigger a fresh
+  // install — key the boot effect on package.json so it re-mounts + reinstalls.
+  const pkgContent = files.find((f) => f.path === "package.json")?.content ?? "";
+
+  // ── Boot + mount + install + run dev (per build, or when dependencies change) ──
   React.useEffect(() => {
     let disposed = false;
     filesRef.current = files;
@@ -170,13 +174,18 @@ export function WebContainerPreview({
       if (errorTimer) clearTimeout(errorTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buildKey]);
+  }, [buildKey, pkgContent]);
 
   // ── Hot-patch changed files on edits (Vite HMR picks them up) ──
   React.useEffect(() => {
     const previous = filesRef.current;
     filesRef.current = files;
     if (status !== "ready") return;
+
+    // A dependency change re-installs via the boot effect — skip HMR for it.
+    const prevPkg = previous.find((p) => p.path === "package.json")?.content ?? "";
+    const curPkg = files.find((f) => f.path === "package.json")?.content ?? "";
+    if (prevPkg !== curPkg) return;
 
     let changed = false;
     (async () => {
