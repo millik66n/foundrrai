@@ -51,6 +51,8 @@ DESIGN BAR — this is the whole point, make it beautiful:
 - NO emoji feature-card rows, NO lorem ipsum, NO unstyled default look.
 
 LANGUAGE & CONTENT: every visible word in natural, fluent Azerbaijani. Realistic local content — Baku / Azerbaijan addresses, prices in AZN (₼), +994 phone numbers, Azerbaijani names, and genuinely good marketing copy (never placeholders). Include a working contact or booking form as the primary call-to-action.
+
+FORM SUBMISSIONS (the form must actually save): build the primary contact/booking form as a React component with its own submit handler, loading + success + error states. On submit, if BOTH import.meta.env.VITE_SUPABASE_URL and import.meta.env.VITE_SUPABASE_ANON_KEY are defined, POST the collected fields as JSON to \`\${import.meta.env.VITE_SUPABASE_URL}/rest/v1/leads\` with headers { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_ANON_KEY, Authorization: \`Bearer \${import.meta.env.VITE_SUPABASE_ANON_KEY}\`, Prefer: "return=minimal" }, mapping inputs to the columns name, email, phone, message (only include the fields your form actually has). Await it, then show an Azerbaijani success message and reset the form; on failure show a friendly Azerbaijani error. If those env vars are NOT defined, skip the network call and just show the success message. NEVER hardcode keys — read them only from import.meta.env.
 If the user provided a logo image URL, use it in the header; otherwise design a clean text wordmark.
 
 SEO & A11Y: <title> under 60 chars, meta description under 160, a single H1, semantic HTML5 landmarks, descriptive alt text on every image, and accessible color contrast.`;

@@ -142,6 +142,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Yayımlama alınmadı." }, { status: 502 });
   }
 
+  // Persist the Supabase keys on the user's Vercel PROJECT so they survive future
+  // redeploys (the Supabase ↔ Vercel link). Best-effort, upserted.
+  if (liveUrl && Object.keys(env).length > 0) {
+    const envEndpoint = `https://api.vercel.com/v10/projects/${name}/env?upsert=true${
+      teamId ? `&teamId=${teamId}` : ""
+    }`;
+    await Promise.all(
+      Object.entries(env).map(([key, value]) =>
+        fetch(envEndpoint, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${vercel.token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            key,
+            value,
+            type: "encrypted",
+            target: ["production", "preview", "development"],
+          }),
+        }).catch(() => {}),
+      ),
+    );
+  }
+
   if (liveUrl) {
     await supabase
       .from("sites")

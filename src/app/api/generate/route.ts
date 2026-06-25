@@ -183,6 +183,17 @@ export async function POST(request: Request) {
         await supabase
           .from("messages")
           .insert({ site_id: siteId, role: "user", content: prompt });
+
+        // Snapshot the full current file tree as a restorable checkpoint/version.
+        const { data: snapshot } = await supabase
+          .from("files")
+          .select("path,content")
+          .eq("site_id", siteId);
+        await supabase.from("checkpoints").insert({
+          site_id: siteId,
+          label: mode === "build" ? (parsed.name ?? "İlk versiya") : prompt.slice(0, 80),
+          files: snapshot ?? files,
+        });
       }
     }
 

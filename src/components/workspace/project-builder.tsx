@@ -7,6 +7,7 @@ import {
   ArrowUp,
   Check,
   FileText,
+  History,
   Loader2,
   Plus,
   Sparkles,
@@ -26,6 +27,7 @@ import {
   toFileChanges,
 } from "@/lib/workspace/build-session";
 import { BuildLog } from "@/components/workspace/build-log";
+import { CheckpointsPanel } from "@/components/workspace/checkpoints-panel";
 import { PreviewPane } from "@/components/workspace/preview-pane";
 import { PublishPanel } from "@/components/workspace/publish-panel";
 import { getTemplate } from "@/lib/templates";
@@ -98,6 +100,18 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
   const fixAttemptsRef = React.useRef(0);
   const fixGaveUpRef = React.useRef(false);
   const [publishOpen, setPublishOpen] = React.useState(false);
+  const [versionsOpen, setVersionsOpen] = React.useState(false);
+
+  /** Restore the live project to a previous checkpoint's file tree. */
+  const restoreCheckpoint = (restored: ProjectFile[]) => {
+    if (restored.length === 0) return;
+    setFiles(restored);
+    setActiveFile(restored[0]?.path ?? null);
+    setBlocks((prev) => [
+      ...prev,
+      { id: makeId(), type: "note", text: "Əvvəlki versiya bərpa olundu.", tone: "ok" },
+    ]);
+  };
 
   /** Immutably patch a single block by id. */
   const patchBlock = React.useCallback(
@@ -627,9 +641,21 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
             <span className="brand-mark h-5 w-5 rounded-[6px]" />
             Foundrr
           </button>
-          <span className="rounded-full border border-border px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
-            {credits} kredit
-          </span>
+          <div className="flex items-center gap-2">
+            {phase === "built" && siteId ? (
+              <button
+                onClick={() => setVersionsOpen(true)}
+                title="Versiyalar"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <History className="h-3.5 w-3.5" />
+                Versiyalar
+              </button>
+            ) : null}
+            <span className="rounded-full border border-border px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
+              {credits} kredit
+            </span>
+          </div>
         </header>
 
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
@@ -684,45 +710,63 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
             </div>
           ) : null}
 
-          <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-2 py-1.5 focus-within:border-[hsl(var(--ring)/0.5)]">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*,.md,.markdown,.txt,.json,.csv"
-              onChange={onFiles}
-              className="hidden"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={attaching}
-              aria-label="Loqo və ya fayl əlavə et"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-            >
-              {attaching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
-            </button>
-            <input
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,.md,.markdown,.txt,.json,.csv"
+            onChange={onFiles}
+            className="hidden"
+          />
+
+          <div className="rounded-2xl border border-border bg-card p-2.5 shadow-[0_10px_30px_-22px_hsl(240_22%_13%/0.4)] transition-colors focus-within:border-[hsl(var(--ring)/0.5)]">
+            <textarea
               value={refine}
               onChange={(e) => setRefine(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  onRefine(e as unknown as React.FormEvent);
+                }
+              }}
+              rows={1}
               placeholder={
-                phase === "built" ? "Dəyişiklik istə…" : "Planı dəyiş və ya nəsə əlavə et…"
+                phase === "built"
+                  ? "Dəyişiklik istə — “qiymət bölməsi əlavə et”…"
+                  : "Planı dəyiş və ya nəsə əlavə et…"
               }
               disabled={busy}
-              className="h-9 flex-1 bg-transparent px-2 text-[14px] outline-none placeholder:text-muted-foreground disabled:opacity-50"
+              className="block max-h-[140px] min-h-[24px] w-full resize-none bg-transparent px-1.5 pt-1 text-[14px] leading-relaxed outline-none placeholder:text-muted-foreground disabled:opacity-50"
             />
-            <button
-              type="submit"
-              aria-label="Göndər"
-              disabled={busy}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background transition-all hover:bg-foreground/90 disabled:opacity-50"
-            >
-              <ArrowUp className="h-4 w-4" />
-            </button>
+            <div className="mt-2 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={attaching}
+                  aria-label="Loqo və ya fayl əlavə et"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                >
+                  {attaching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                </button>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-2.5 py-1.5 text-[12px] font-medium text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Foundrr Agent
+                </span>
+              </div>
+              <button
+                type="submit"
+                aria-label="Göndər"
+                disabled={busy}
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background transition-all hover:-translate-y-0.5 hover:bg-foreground/90 disabled:translate-y-0 disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
         </form>
       </section>
@@ -744,6 +788,13 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
         onClose={() => setPublishOpen(false)}
         siteId={siteId}
         siteName={siteName}
+      />
+
+      <CheckpointsPanel
+        open={versionsOpen}
+        onClose={() => setVersionsOpen(false)}
+        siteId={siteId}
+        onRestore={restoreCheckpoint}
       />
     </div>
   );
