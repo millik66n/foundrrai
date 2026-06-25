@@ -7,6 +7,7 @@ import {
   Link2,
   Loader2,
   LogOut,
+  RefreshCw,
   Settings,
   Shield,
   Sparkles,
@@ -70,6 +71,7 @@ export function SettingsModal({
   const [upgrading, setUpgrading] = React.useState<string | null>(null);
   const [buyingPack, setBuyingPack] = React.useState<string | null>(null);
   const [cancelling, setCancelling] = React.useState(false);
+  const [syncing, setSyncing] = React.useState(false);
 
   React.useEffect(() => {
     if (open) setTab(initialTab);
@@ -150,6 +152,21 @@ export function SettingsModal({
       if (res.ok) onPlanChanged?.(data.plan, data.credits);
     } finally {
       setCancelling(false);
+    }
+  };
+
+  // Reconcile the plan from Stripe (for when a purchase didn't apply automatically).
+  const syncPlan = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/billing/sync", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.changed) onUpgraded(data.plan, data.credits);
+        else onPlanChanged?.(data.plan, data.credits);
+      }
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -257,9 +274,11 @@ export function SettingsModal({
               upgrading={upgrading}
               buyingPack={buyingPack}
               cancelling={cancelling}
+              syncing={syncing}
               onUpgrade={upgrade}
               onBuyCredits={buyCredits}
               onCancel={cancelPlan}
+              onSync={syncPlan}
             />
           ) : null}
 
@@ -300,18 +319,22 @@ function PlanTab({
   upgrading,
   buyingPack,
   cancelling,
+  syncing,
   onUpgrade,
   onBuyCredits,
   onCancel,
+  onSync,
 }: {
   plan: string;
   credits: number;
   upgrading: string | null;
   buyingPack: string | null;
   cancelling: boolean;
+  syncing: boolean;
   onUpgrade: (target: "pro" | "max") => void;
   onBuyCredits: (pack: string) => void;
   onCancel: () => void;
+  onSync: () => void;
 }) {
   const [confirmCancel, setConfirmCancel] = React.useState(false);
   const currentRank = PLAN_RANK[plan] ?? 0;
@@ -422,10 +445,23 @@ function PlanTab({
         </div>
       ) : null}
 
-      <p className="mt-4 text-[12px] text-muted-foreground">
-        Qeyd: Stripe hələ konfiqurasiya olunmayıbsa, yüksəltmə pulsuz simulyasiyadır —
-        kredit dərhal əlavə olunur.
-      </p>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[12px] text-muted-foreground">
+          Qeyd: Stripe hələ konfiqurasiya olunmayıbsa, yüksəltmə pulsuz simulyasiyadır.
+        </p>
+        <button
+          onClick={onSync}
+          disabled={syncing}
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-primary transition-colors hover:underline disabled:opacity-50"
+        >
+          {syncing ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="h-3.5 w-3.5" />
+          )}
+          Ödəniş etmisən, amma görünmür? Bərpa et
+        </button>
+      </div>
     </div>
   );
 }

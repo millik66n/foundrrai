@@ -54,13 +54,27 @@ export function ProfileMenu({
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("settings");
     const connected = params.get("connected") ?? undefined;
+    const upgraded = params.get("upgraded");
+
     if (tab === "account" || tab === "plan" || tab === "connections") {
       setSettingsTab(tab);
       if (connected) setJustConnected(connected);
       setSettingsOpen(true);
       window.history.replaceState(null, "", "/workspace");
     }
-  }, [onDashboard]);
+
+    // Returned from Stripe Checkout — reconcile the plan from Stripe even if the
+    // webhook isn't set up, then celebrate the upgrade.
+    if (upgraded) {
+      window.history.replaceState(null, "", "/workspace");
+      fetch("/api/billing/sync", { method: "POST" })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.changed) onUpgraded(d.plan, d.credits);
+        })
+        .catch(() => {});
+    }
+  }, [onDashboard]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openSettings = (tab: "account" | "plan") => {
     setOpen(false);
