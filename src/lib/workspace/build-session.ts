@@ -30,7 +30,8 @@ export type Block =
       done: boolean;
     }
   | { id: string; type: "edit"; files: FileChange[]; revealed: number; done: boolean }
-  | { id: string; type: "note"; text: string; tone: "ok" | "err" };
+  | { id: string; type: "note"; text: string; tone: "ok" | "err" }
+  | { id: string; type: "reply"; text: string };
 
 export interface BuildSession {
   prompt: string;

@@ -4,6 +4,7 @@ import OpenAI from "openai";
 import {
   BUILD_FALLBACK_MODEL,
   BUILD_SYSTEM,
+  CHAT_SYSTEM,
   CREDIT_COSTS,
   EDIT_SYSTEM,
   FIX_SYSTEM,
@@ -25,7 +26,7 @@ interface GenerateBody {
   docs?: Array<{ name: string; content: string }>;
 }
 
-const VALID_MODES: ReadonlyArray<GenerateMode> = ["plan", "build", "edit", "fix"];
+const VALID_MODES: ReadonlyArray<GenerateMode> = ["plan", "build", "edit", "fix", "chat"];
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -107,6 +108,29 @@ export async function POST(request: Request) {
         needsLogo: parsed.needsLogo ?? true,
         credits: newCredits,
       });
+    }
+
+    if (mode === "chat") {
+      const completion = await openai.chat.completions.create({
+        model: MODELS.chat,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: CHAT_SYSTEM },
+          {
+            role: "user",
+            content:
+              (body.files
+                ? `Cari fayllar (kontekst):\n${JSON.stringify(body.files).slice(0, 30000)}\n\n`
+                : "") + `Sual: ${prompt}`,
+          },
+        ],
+      });
+      const parsed = JSON.parse(
+        completion.choices[0]?.message?.content ?? "{}",
+      ) as { reply?: string };
+      const newCredits = credits - cost;
+      await supabase.from("profiles").update({ credits: newCredits }).eq("id", user.id);
+      return NextResponse.json({ reply: parsed.reply ?? "—", credits: newCredits });
     }
 
     // build | edit

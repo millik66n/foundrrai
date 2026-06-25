@@ -1,6 +1,6 @@
 /** Foundrr generation engine config + prompts (runs on OpenAI). */
 
-export const CREDIT_COSTS = { plan: 5, build: 85, edit: 12, fix: 5 } as const;
+export const CREDIT_COSTS = { plan: 5, build: 85, edit: 12, fix: 5, chat: 1 } as const;
 export type GenerateMode = keyof typeof CREDIT_COSTS;
 
 /**
@@ -13,6 +13,7 @@ export const MODELS = {
   // Edits need real reasoning (adding pages, wiring routing) — not the mini model.
   edit: process.env.OPENAI_MODEL_EDIT ?? "gpt-4.1",
   fix: process.env.OPENAI_MODEL_FAST ?? "gpt-4.1-mini",
+  chat: process.env.OPENAI_MODEL_FAST ?? "gpt-4.1-mini",
   build: process.env.OPENAI_MODEL_BUILD ?? "gpt-5.5",
 } as const;
 
@@ -74,6 +75,10 @@ Return EVERY file you changed or added — package.json, main.tsx, App.tsx, the 
 OUTPUT: ONLY strict JSON, no markdown, no prose: {"files":[{"path":"...","content":"..."}, ...]} with the FULL content of each changed or added file. Leave unrelated files untouched.
 
 QUALITY: preserve and elevate the existing design system — never downgrade to a plain/unstyled look. Keep Tailwind wired correctly and the project building with ZERO Vite/PostCSS/TS errors (inside '@apply' use only real utilities — no slash-opacity like 'bg-white/72', no arbitrary values; use rgba()/hsl() alpha for translucency). Use realistic Azerbaijani content (Baku, ₼ prices, +994 numbers) and real Unsplash images (https://images.unsplash.com/photo-...?auto=format&fit=crop&w=1600&q=80) for any new imagery. Every visible word stays natural Azerbaijani.`;
+
+export const CHAT_SYSTEM = `You are Foundrr's friendly assistant. The user is CHATTING about their generated Azerbaijani website (you may receive the current project files for context). Answer their question, give advice, or explain — concisely and helpfully, in natural Azerbaijani.
+IMPORTANT: this is chat only — DO NOT modify, generate, or return any files or code. If the user actually wants a change made, tell them to switch to "Agent" mode and describe it.
+Return ONLY strict JSON, no markdown: {"reply":"<your answer in Azerbaijani>"}.`;
 
 export const FIX_SYSTEM = `You are Foundrr, fixing a BUILD or RUNTIME error in an existing Vite + React + TypeScript + Tailwind project.
 You receive the current files and the EXACT error (Vite / PostCSS / TypeScript).

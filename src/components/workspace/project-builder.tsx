@@ -10,6 +10,7 @@ import {
   FileText,
   History,
   Loader2,
+  MessageCircle,
   Plus,
   Sparkles,
   X,
@@ -104,6 +105,7 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
   const [publishOpen, setPublishOpen] = React.useState(false);
   const [versionsOpen, setVersionsOpen] = React.useState(false);
   const [mobileView, setMobileView] = React.useState<"chat" | "preview">("chat");
+  const [mode, setMode] = React.useState<"agent" | "chat">("agent");
 
   /** Restore the live project to a previous checkpoint's file tree. */
   const restoreCheckpoint = (restored: ProjectFile[]) => {
@@ -580,12 +582,38 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
     }
   };
 
+  /** Chat-only question about the site — answers in a reply bubble, no file changes. */
+  const runChat = async (text: string) => {
+    setBusy(true);
+    const userId = makeId();
+    const replyId = makeId();
+    setBlocks((prev) => [
+      ...prev,
+      { id: userId, type: "user", text },
+      { id: replyId, type: "reply", text: "…" },
+    ]);
+    try {
+      const data = await callGenerate({ mode: "chat", prompt: text, siteId, files });
+      if (typeof data.credits === "number") setCredits(data.credits);
+      patchBlock(replyId, (b) => (b.type === "reply" ? { ...b, text: data.reply ?? "—" } : b));
+    } catch (error) {
+      patchBlock(replyId, (b) => (b.type === "reply" ? { ...b, text: errMessage(error) } : b));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onRefine = (event: React.FormEvent) => {
     event.preventDefault();
     const text = refine.trim();
     const hasAttachment = !!logoUrl || docs.length > 0;
     if ((!text && !hasAttachment) || busy) return;
     setRefine("");
+
+    if (mode === "chat") {
+      if (text) void runChat(text);
+      return;
+    }
 
     if (phase === "built") {
       // Edit the live site. Attachment-only sends still work (add the logo).
@@ -760,9 +788,11 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
               }}
               rows={1}
               placeholder={
-                phase === "built"
-                  ? "Dəyişiklik istə — “qiymət bölməsi əlavə et”…"
-                  : "Planı dəyiş və ya nəsə əlavə et…"
+                mode === "chat"
+                  ? "Sual ver — saytı dəyişmir…"
+                  : phase === "built"
+                    ? "Dəyişiklik istə — “qiymət bölməsi əlavə et”…"
+                    : "Planı dəyiş və ya nəsə əlavə et…"
               }
               disabled={busy}
               className="block max-h-[140px] min-h-[24px] w-full resize-none bg-transparent px-1.5 pt-1 text-[14px] leading-relaxed outline-none placeholder:text-muted-foreground disabled:opacity-50"
@@ -782,10 +812,32 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
                     <Plus className="h-4 w-4" />
                   )}
                 </button>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-2.5 py-1.5 text-[12px] font-medium text-muted-foreground">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  Foundrr Agent
-                </span>
+                <div className="flex items-center rounded-lg bg-muted p-0.5 text-[12px] font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setMode("agent")}
+                    title="Saytı dəyişir (kredit istifadə edir)"
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-md px-2 py-1 transition-colors",
+                      mode === "agent" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+                    )}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    Agent
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("chat")}
+                    title="Sual ver — saytı dəyişmir"
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-md px-2 py-1 transition-colors",
+                      mode === "chat" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+                    )}
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    Söhbət
+                  </button>
+                </div>
               </div>
               <button
                 type="submit"
@@ -957,6 +1009,14 @@ function ConversationBlock({
 
   if (block.type === "build" || block.type === "edit") {
     return <BuildLog block={block} />;
+  }
+
+  if (block.type === "reply") {
+    return (
+      <div className="mr-auto w-fit max-w-[90%] whitespace-pre-wrap rounded-2xl rounded-bl-md border border-border bg-card px-4 py-2.5 text-[14px] leading-relaxed text-foreground">
+        {block.text}
+      </div>
+    );
   }
 
   // note
