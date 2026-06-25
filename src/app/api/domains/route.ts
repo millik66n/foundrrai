@@ -134,6 +134,20 @@ export async function POST(request: Request) {
     );
     const cfg = (await cfgRes.json().catch(() => ({}))) as { misconfigured?: boolean };
 
+    // Nameserver-delegation method: the registrar's NS records get replaced with
+    // Vercel's. Pull the domain's intended nameservers (fall back to the defaults).
+    let nameservers = ["ns1.vercel-dns.com", "ns2.vercel-dns.com"];
+    try {
+      const nsRes = await fetch(`https://api.vercel.com/v5/domains/${domain}${q}`, { headers });
+      const nsData = (await nsRes.json()) as {
+        domain?: { intendedNameservers?: string[] };
+      };
+      const intended = nsData.domain?.intendedNameservers;
+      if (Array.isArray(intended) && intended.length > 0) nameservers = intended;
+    } catch {
+      /* keep defaults */
+    }
+
     // 4. Build the records the user must add at their registrar.
     const apex = status.apexName ?? domain;
     const isApex = domain === apex;
@@ -156,6 +170,7 @@ export async function POST(request: Request) {
       verified,
       misconfigured: cfg.misconfigured ?? true,
       records,
+      nameservers,
     });
   } catch {
     return NextResponse.json({ error: "Domen yoxlanışı alınmadı." }, { status: 502 });

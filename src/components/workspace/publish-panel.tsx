@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, ExternalLink, Globe, Loader2, Plus, Rocket, X } from "lucide-react";
+import { Check, Copy, ExternalLink, Globe, Loader2, Rocket, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -209,19 +209,26 @@ interface DomainResult {
   verified: boolean;
   misconfigured: boolean;
   records: { type: string; name: string; value: string }[];
+  nameservers: string[];
 }
 
-/** "Connect your own domain" — gets the live DNS records from Vercel and re-checks. */
+type DomainMethod = "nameservers" | "records";
+
+/** "Connect your own domain" — nameservers or DNS records from Vercel, with verify. */
 function CustomDomain({ siteId }: { siteId: string | null }) {
   const [open, setOpen] = React.useState(false);
   const [domain, setDomain] = React.useState("");
+  const [method, setMethod] = React.useState<DomainMethod>("nameservers");
   const [loading, setLoading] = React.useState(false);
+  const [verifying, setVerifying] = React.useState(false);
+  const [checkedOnce, setCheckedOnce] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<DomainResult | null>(null);
 
-  const check = async () => {
+  const call = async (verify: boolean) => {
     if (!siteId || !domain.trim()) return;
-    setLoading(true);
+    if (verify) setVerifying(true);
+    else setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/domains", {
@@ -230,12 +237,17 @@ function CustomDomain({ siteId }: { siteId: string | null }) {
         body: JSON.stringify({ siteId, domain }),
       });
       const data = await res.json();
-      if (res.ok) setResult(data as DomainResult);
-      else setError(data.error ?? "Alınmadı.");
+      if (res.ok) {
+        setResult(data as DomainResult);
+        if (verify) setCheckedOnce(true);
+      } else {
+        setError(data.error ?? "Alınmadı.");
+      }
     } catch {
       setError("Alınmadı.");
     } finally {
-      setLoading(false);
+      if (verify) setVerifying(false);
+      else setLoading(false);
     }
   };
 
@@ -245,73 +257,148 @@ function CustomDomain({ siteId }: { siteId: string | null }) {
         onClick={() => setOpen(true)}
         className="mt-4 flex w-full items-center gap-2 rounded-2xl border border-dashed border-border px-4 py-3 text-[13px] font-medium text-foreground transition-colors hover:border-foreground/30 hover:bg-muted/40"
       >
-        <Plus className="h-4 w-4 text-primary" />
+        <Globe className="h-4 w-4 text-primary" />
         Öz domenini bağla
       </button>
     );
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-border p-4">
-      <p className="text-[13px] font-medium">Öz domenin</p>
-      <p className="mt-0.5 text-[12px] text-muted-foreground">
-        Domenini yaz — qoşmaq üçün lazım olan DNS qeydlərini verək.
-      </p>
-      <div className="mt-2.5 flex gap-2">
-        <input
-          value={domain}
-          onChange={(e) => setDomain(e.target.value)}
-          placeholder="nümunə.az"
-          className="h-10 flex-1 rounded-xl border border-border bg-background px-3 text-[13px] outline-none focus:border-[hsl(var(--ring)/0.5)]"
-        />
-        <button
-          onClick={check}
-          disabled={loading || !domain.trim()}
-          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-foreground px-4 text-[13px] font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {result ? "Yenidən yoxla" : "Bağla"}
-        </button>
+    <div className="mt-4 overflow-hidden rounded-2xl border border-border">
+      <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-3">
+        <Globe className="h-4 w-4 text-primary" />
+        <p className="text-[13px] font-semibold">Öz domenin</p>
       </div>
 
-      {error ? <p className="mt-2 text-[12px] text-destructive">{error}</p> : null}
+      <div className="p-4">
+        <div className="flex gap-2">
+          <input
+            value={domain}
+            onChange={(e) => {
+              setDomain(e.target.value);
+              setResult(null);
+              setCheckedOnce(false);
+            }}
+            placeholder="nümunə.az"
+            className="h-10 flex-1 rounded-xl border border-border bg-background px-3 text-[13px] outline-none focus:border-[hsl(var(--ring)/0.5)]"
+          />
+          {!result ? (
+            <button
+              onClick={() => call(false)}
+              disabled={loading || !domain.trim()}
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-foreground px-4 text-[13px] font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Davam et
+            </button>
+          ) : null}
+        </div>
 
-      {result?.verified ? (
-        <div className="mt-3 flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] px-3 py-2.5 text-[13px] font-medium text-emerald-700">
-          <Check className="h-4 w-4" /> {result.domain} qoşuldu — sayt canlıdır!
-        </div>
-      ) : result ? (
-        <div className="mt-3">
-          <p className="text-[12px] text-muted-foreground">
-            Bu qeydləri domen provayderində (registrator) əlavə et, sonra
-            “Yenidən yoxla”ya bas:
-          </p>
-          <div className="mt-2 overflow-hidden rounded-xl border border-border">
-            <div className="grid grid-cols-[54px_1fr_1.4fr] bg-muted/50 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              <span>Tip</span>
-              <span>Ad</span>
-              <span>Dəyər</span>
-            </div>
-            {result.records.map((r, i) => (
-              <div
-                key={i}
-                className="grid grid-cols-[54px_1fr_1.4fr] items-center gap-2 border-t border-border px-3 py-2 font-mono text-[11.5px]"
-              >
-                <span className="font-semibold">{r.type}</span>
-                <span className="truncate">{r.name}</span>
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="truncate">{r.value}</span>
-                  <CopyButton text={r.value} />
-                </span>
-              </div>
-            ))}
+        {error ? <p className="mt-2 text-[12px] text-destructive">{error}</p> : null}
+
+        {result?.verified ? (
+          <div className="mt-3 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] px-3.5 py-3">
+            <span className="flex items-center gap-2 text-[13px] font-semibold text-emerald-700">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white">
+                <Check className="h-3.5 w-3.5" strokeWidth={3} />
+              </span>
+              {result.domain} qoşuldu
+            </span>
+            <a
+              href={`https://${result.domain}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-emerald-700 hover:underline"
+            >
+              Aç <ExternalLink className="h-3.5 w-3.5" />
+            </a>
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            DNS yayılması 5 dəqiqədən bir neçə saata qədər çəkə bilər. Hazır olanda
-            domen avtomatik qoşulacaq.
-          </p>
-        </div>
-      ) : null}
+        ) : result ? (
+          <>
+            {/* method toggle */}
+            <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-1">
+              <MethodBtn active={method === "nameservers"} onClick={() => setMethod("nameservers")}>
+                Ad serverləri
+              </MethodBtn>
+              <MethodBtn active={method === "records"} onClick={() => setMethod("records")}>
+                DNS qeydləri
+              </MethodBtn>
+            </div>
+
+            <p className="mt-2.5 text-[12px] leading-relaxed text-muted-foreground">
+              {method === "nameservers"
+                ? "Registratorda domenin ad serverlərini (nameservers) bunlarla əvəz et — bütün domeni Vercel idarə edir (ən asan yol)."
+                : "Bu DNS qeydlərini registratorda əlavə et — mövcud qeydlərə toxunmadan."}
+            </p>
+
+            <div className="mt-2.5 space-y-2">
+              {method === "nameservers"
+                ? result.nameservers.map((ns) => (
+                    <DnsField key={ns} label="Nameserver" value={ns} />
+                  ))
+                : result.records.map((r, i) => (
+                    <DnsField key={i} label={`${r.type} · ${r.name}`} value={r.value} />
+                  ))}
+            </div>
+
+            <button
+              onClick={() => call(true)}
+              disabled={verifying}
+              className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-[hsl(var(--primary-hover))] disabled:opacity-60"
+            >
+              {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Bağlantını yoxla
+            </button>
+
+            {checkedOnce ? (
+              <p className="mt-2 text-center text-[11.5px] text-amber-600">
+                Hələ qoşulmayıb — DNS dəyişikliyi yayılana qədər (5 dəq – bir neçə saat)
+                gözlə, sonra yenidən yoxla.
+              </p>
+            ) : (
+              <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                Dəyişikliyi etdikdən sonra yoxla — hazır olanda domen avtomatik qoşulur.
+              </p>
+            )}
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function MethodBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "rounded-lg py-1.5 text-[12.5px] font-medium transition-colors",
+        active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DnsField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5">
+      <div className="min-w-0">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <p className="truncate font-mono text-[12.5px]">{value}</p>
+      </div>
+      <CopyButton text={value} />
     </div>
   );
 }
