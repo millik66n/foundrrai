@@ -136,6 +136,61 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
       .catch(() => {});
   }, [siteId]);
 
+  // Debounced per-file persistence for direct edits (code editor + inline text).
+  const saveTimers = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const persistFile = React.useCallback(
+    (path: string, content: string) => {
+      const sid = siteId;
+      if (!sid) return;
+      const timers = saveTimers.current;
+      const existing = timers.get(path);
+      if (existing) clearTimeout(existing);
+      timers.set(
+        path,
+        setTimeout(() => {
+          timers.delete(path);
+          fetch("/api/files", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siteId: sid, path, content }),
+          }).catch(() => {});
+        }, 700),
+      );
+    },
+    [siteId],
+  );
+
+  /** Live edit from the in-browser code editor (#2) — update preview + persist. */
+  const editFileContent = (path: string, content: string) => {
+    setFiles((prev) => prev.map((f) => (f.path === path ? { ...f, content } : f)));
+    persistFile(path, content);
+  };
+
+  /** Inline visual text edit (#5) — replace exact copy across the project (free). */
+  const applyTextReplace = (from: string, to: string) => {
+    const oldText = from.trim();
+    const newText = to.trim();
+    if (!oldText || oldText === newText) return;
+    const next = files.map((f) =>
+      f.content.includes(oldText)
+        ? { ...f, content: f.content.split(oldText).join(newText) }
+        : f,
+    );
+    const changed = next.filter((f, i) => f.content !== files[i]?.content);
+    if (changed.length === 0) return;
+    setFiles(next);
+    changed.forEach((f) => persistFile(f.path, f.content));
+    setBlocks((prev) => [
+      ...prev,
+      {
+        id: makeId(),
+        type: "note",
+        text: `Mətn dəyişdirildi: “${oldText.slice(0, 36)}” → “${newText.slice(0, 36)}”`,
+        tone: "ok",
+      },
+    ]);
+  };
+
   /** User clicked an element in the preview — target it in the chat for an edit. */
   const onElementPick = (info: { text: string; tag: string }) => {
     const label = info.text ? `“${info.text}”` : `bu ${info.tag || "element"}`;
@@ -596,7 +651,7 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
     }
   };
 
-  /** Chat-only question about the site — answers in a reply bubble, no file changes. */
+  /** Chat-only question — answers in a reply bubble, streaming tokens, no file changes. */
   const runChat = async (text: string) => {
     setBusy(true);
     const userId = makeId();
@@ -604,12 +659,33 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
     setBlocks((prev) => [
       ...prev,
       { id: userId, type: "user", text },
-      { id: replyId, type: "reply", text: "…" },
+      { id: replyId, type: "reply", text: "" },
     ]);
     try {
-      const data = await callGenerate({ mode: "chat", prompt: text, siteId, files, knowledge });
-      if (typeof data.credits === "number") setCredits(data.credits);
-      patchBlock(replyId, (b) => (b.type === "reply" ? { ...b, text: data.reply ?? "—" } : b));
+      const res = await fetch("/api/generate/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: text, siteId, files, knowledge }),
+      });
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? "Söhbət alınmadı.");
+      }
+      const headerCredits = Number(res.headers.get("X-Credits"));
+      if (!Number.isNaN(headerCredits)) setCredits(headerCredits);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        patchBlock(replyId, (b) => (b.type === "reply" ? { ...b, text: acc } : b));
+      }
+      if (!acc.trim()) {
+        patchBlock(replyId, (b) => (b.type === "reply" ? { ...b, text: "—" } : b));
+      }
     } catch (error) {
       patchBlock(replyId, (b) => (b.type === "reply" ? { ...b, text: errMessage(error) } : b));
     } finally {
@@ -894,6 +970,8 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
           onBuildError={handleBuildError}
           onPublish={() => setPublishOpen(true)}
           onElementPick={onElementPick}
+          onChangeFile={editFileContent}
+          onTextReplace={applyTextReplace}
         />
       </div>
 
@@ -1046,7 +1124,15 @@ function ConversationBlock({
   if (block.type === "reply") {
     return (
       <div className="mr-auto w-fit max-w-[90%] whitespace-pre-wrap rounded-2xl rounded-bl-md border border-border bg-card px-4 py-2.5 text-[14px] leading-relaxed text-foreground">
-        {block.text}
+        {block.text ? (
+          block.text
+        ) : (
+          <span className="inline-flex gap-1">
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:-0.2s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:-0.1s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50" />
+          </span>
+        )}
       </div>
     );
   }

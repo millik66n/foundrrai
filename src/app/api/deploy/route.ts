@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
   const { data: site } = await supabase
     .from("sites")
-    .select("name")
+    .select("name, schema")
     .eq("id", siteId)
     .eq("owner_id", user.id)
     .single();
@@ -125,10 +125,13 @@ export async function POST(request: Request) {
   const ref = supa?.meta?.ref as string | undefined;
   if (supa && ref) {
     try {
+      // Always ensure the leads table, then run the app's own backend schema if any.
+      const siteSchema = (site.schema as string | null)?.trim();
+      const query = siteSchema ? `${LEADS_SQL}\n\n${siteSchema}` : LEADS_SQL;
       await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
         method: "POST",
         headers: { Authorization: `Bearer ${supa.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ query: LEADS_SQL }),
+        body: JSON.stringify({ query }),
       });
       const keysRes = await fetch(`https://api.supabase.com/v1/projects/${ref}/api-keys`, {
         headers: { Authorization: `Bearer ${supa.token}` },

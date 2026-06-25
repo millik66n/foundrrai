@@ -1,7 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Code2, Eye, Monitor, MousePointerClick, Rocket, Smartphone } from "lucide-react";
+import {
+  Code2,
+  Eye,
+  Monitor,
+  MousePointerClick,
+  Rocket,
+  Smartphone,
+  Type,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { Phase } from "@/lib/workspace/build-session";
@@ -27,6 +35,10 @@ interface PreviewPaneProps {
   onBuildError?: (error: string) => void;
   onPublish?: () => void;
   onElementPick?: (info: { text: string; tag: string }) => void;
+  /** Live edit of a file from the in-browser code editor. */
+  onChangeFile?: (path: string, content: string) => void;
+  /** Inline visual text edit — replace an exact piece of copy across the project. */
+  onTextReplace?: (oldText: string, newText: string) => void;
 }
 
 export function PreviewPane({
@@ -39,12 +51,27 @@ export function PreviewPane({
   onBuildError,
   onPublish,
   onElementPick,
+  onChangeFile,
+  onTextReplace,
 }: PreviewPaneProps) {
   const [tab, setTab] = React.useState<Tab>("preview");
   const [device, setDevice] = React.useState<Device>("desktop");
   const [selecting, setSelecting] = React.useState(false);
+  const [editingText, setEditingText] = React.useState(false);
   const built = phase === "built" && files.length > 0;
   const buildKey = siteId ?? "draft";
+
+  // "Seç" and "Mətn" modes are mutually exclusive — turning one on disables the other.
+  const toggleSelecting = () =>
+    setSelecting((s) => {
+      if (!s) setEditingText(false);
+      return !s;
+    });
+  const toggleEditingText = () =>
+    setEditingText((t) => {
+      if (!t) setSelecting(false);
+      return !t;
+    });
 
   return (
     <section className="relative flex min-w-0 flex-1 flex-col bg-muted/30">
@@ -76,7 +103,20 @@ export function PreviewPane({
             {tab === "preview" ? (
               <>
                 <button
-                  onClick={() => setSelecting((s) => !s)}
+                  onClick={toggleEditingText}
+                  title="Mətnə toxunub birbaşa yaz"
+                  className={cn(
+                    "inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[13px] font-medium transition-colors",
+                    editingText
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Type className="h-3.5 w-3.5" />
+                  Mətn
+                </button>
+                <button
+                  onClick={toggleSelecting}
                   title="Elementi seçib dəyiş"
                   className={cn(
                     "inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[13px] font-medium transition-colors",
@@ -137,6 +177,8 @@ export function PreviewPane({
                   setSelecting(false);
                   onElementPick?.(info);
                 }}
+                editingText={editingText}
+                onTextEdit={({ from, to }) => onTextReplace?.(from, to)}
               />
             </div>
             <div className={cn("absolute inset-0", tab === "code" ? "z-10" : "hidden")}>
@@ -145,6 +187,7 @@ export function PreviewPane({
                 activeFile={activeFile}
                 onSelectFile={onSelectFile}
                 siteName={siteName}
+                onChangeFile={onChangeFile}
               />
             </div>
           </div>

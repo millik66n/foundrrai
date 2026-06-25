@@ -10,6 +10,7 @@ import {
   FileType2,
   Folder,
   Hash,
+  Pencil,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -24,6 +25,8 @@ interface CodeViewProps {
   activeFile: string | null;
   onSelectFile: (path: string) => void;
   siteName: string;
+  /** When provided, the code panel becomes editable and reports edits live. */
+  onChangeFile?: (path: string, content: string) => void;
 }
 
 function iconForPath(path: string) {
@@ -50,11 +53,24 @@ function groupByFolder(files: ProjectFile[]): { folder: string; files: ProjectFi
     .map(([folder, list]) => ({ folder, files: list }));
 }
 
-export function CodeView({ files, activeFile, onSelectFile, siteName }: CodeViewProps) {
+export function CodeView({
+  files,
+  activeFile,
+  onSelectFile,
+  siteName,
+  onChangeFile,
+}: CodeViewProps) {
   const [copied, setCopied] = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
   const active = files.find((f) => f.path === activeFile);
   const groups = React.useMemo(() => groupByFolder(files), [files]);
+  const editable = !!onChangeFile;
   const lines = active ? active.content.split("\n") : [];
+
+  // Leaving edit mode whenever the active file changes keeps the view predictable.
+  React.useEffect(() => {
+    setEditing(false);
+  }, [activeFile]);
 
   const copy = async () => {
     if (!active) return;
@@ -121,38 +137,66 @@ export function CodeView({ files, activeFile, onSelectFile, siteName }: CodeView
         <div className="flex h-10 shrink-0 items-center justify-between border-b border-border bg-card/40 px-4">
           <span className="truncate font-mono text-[12px] text-muted-foreground">
             {active?.path ?? "—"}
+            {editing ? <span className="ml-2 text-primary">• düzəliş</span> : null}
           </span>
           {active ? (
-            <button
-              onClick={copy}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {copied ? (
-                <>
-                  <Check className="h-3 w-3 text-primary" />
-                  Kopyalandı
-                </>
-              ) : (
-                <>
-                  <Copy className="h-3 w-3" />
-                  Kopyala
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-1.5">
+              {editable ? (
+                <button
+                  onClick={() => setEditing((e) => !e)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] transition-colors",
+                    editing
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Pencil className="h-3 w-3" />
+                  {editing ? "Bitir" : "Düzəlt"}
+                </button>
+              ) : null}
+              <button
+                onClick={copy}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3 w-3 text-primary" />
+                    Kopyalandı
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    Kopyala
+                  </>
+                )}
+              </button>
+            </div>
           ) : null}
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto bg-card/20">
-          <div className="flex min-h-full font-mono text-[12px] leading-[1.6]">
-            <div className="select-none border-r border-border/60 bg-card/30 px-3 py-4 text-right text-muted-foreground/50">
-              {lines.map((_, i) => (
-                <div key={i}>{i + 1}</div>
-              ))}
+          {editing && active && onChangeFile ? (
+            <textarea
+              value={active.content}
+              onChange={(e) => onChangeFile(active.path, e.target.value)}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              className="h-full w-full resize-none bg-card/20 px-4 py-4 font-mono text-[12px] leading-[1.6] text-foreground/90 outline-none"
+            />
+          ) : (
+            <div className="flex min-h-full font-mono text-[12px] leading-[1.6]">
+              <div className="select-none border-r border-border/60 bg-card/30 px-3 py-4 text-right text-muted-foreground/50">
+                {lines.map((_, i) => (
+                  <div key={i}>{i + 1}</div>
+                ))}
+              </div>
+              <pre className="flex-1 overflow-x-auto px-4 py-4 text-foreground/90">
+                <code>{active?.content ?? ""}</code>
+              </pre>
             </div>
-            <pre className="flex-1 overflow-x-auto px-4 py-4 text-foreground/90">
-              <code>{active?.content ?? ""}</code>
-            </pre>
-          </div>
+          )}
         </div>
       </div>
     </div>

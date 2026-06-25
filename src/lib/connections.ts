@@ -11,7 +11,7 @@ export interface ProviderConnection {
 export async function getConnection(
   supabase: SupabaseClient,
   userId: string,
-  provider: "vercel" | "netlify" | "supabase",
+  provider: "vercel" | "netlify" | "supabase" | "github",
 ): Promise<ProviderConnection | null> {
   const { data } = await supabase
     .from("connections")

@@ -31,10 +31,13 @@ const ERROR_RE =
 /** Click-to-select script injected into the PREVIEW's index.html only (never deployed). */
 const SELECT_SCRIPT = `(function(){var on=false,last=null;function clr(){if(last&&last.style){last.style.outline='';last.style.outlineOffset='';last.style.cursor='';}last=null;}window.addEventListener('message',function(e){var d=e.data||{};if(d&&d.type==='foundrr:select'){on=!!d.on;if(!on)clr();}});document.addEventListener('mouseover',function(e){if(!on)return;clr();last=e.target;if(last&&last.style){last.style.outline='2px solid #7735E9';last.style.outlineOffset='1px';last.style.cursor='pointer';}},true);document.addEventListener('click',function(e){if(!on)return;e.preventDefault();e.stopPropagation();var el=e.target||{};var t=((el.innerText||el.textContent||'')+'').trim().slice(0,140);parent.postMessage({type:'foundrr:picked',text:t,tag:((el.tagName||'')+'').toLowerCase()},'*');on=false;clr();},true);})();`;
 
+/** Inline text-edit script: click a text node, type, and on blur report from→to. */
+const EDIT_TEXT_SCRIPT = `(function(){var on=false,orig=null,node=null;function end(){if(node){node.removeAttribute('contenteditable');var now=((node.innerText||node.textContent||'')+'').trim();if(orig!=null&&now&&now!==orig){parent.postMessage({type:'foundrr:textedit',from:orig,to:now},'*');}node.style.outline='';node.style.cursor='';}node=null;orig=null;}function editable(el){return el&&el.childElementCount===0&&((el.innerText||'')+'').trim().length>0;}window.addEventListener('message',function(e){var d=e.data||{};if(d&&d.type==='foundrr:edit-text'){on=!!d.on;if(!on)end();}});document.addEventListener('mouseover',function(e){if(!on||node)return;var el=e.target;if(editable(el)){el.style.outline='1px dashed #7735E9';el.style.cursor='text';}},true);document.addEventListener('mouseout',function(e){if(!on||node)return;var el=e.target;if(el&&el!==node){el.style.outline='';el.style.cursor='';}},true);document.addEventListener('click',function(e){if(!on)return;var el=e.target;if(node){if(el!==node)end();return;}if(editable(el)){e.preventDefault();e.stopPropagation();node=el;orig=((el.innerText||el.textContent||'')+'').trim();el.setAttribute('contenteditable','true');el.style.outline='2px solid #7735E9';el.focus();}},true);document.addEventListener('keydown',function(e){if(!on||!node)return;if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();node.blur();}else if(e.key==='Escape'){orig=null;node.blur();}},true);document.addEventListener('blur',function(e){if(on&&node&&e.target===node)end();},true);})();`;
+
 function withSelector(files: ProjectFile[]): ProjectFile[] {
   return files.map((f) => {
     if (f.path !== "index.html") return f;
-    const tag = `<script>${SELECT_SCRIPT}</script>`;
+    const tag = `<script>${SELECT_SCRIPT}</script><script>${EDIT_TEXT_SCRIPT}</script>`;
     const content = f.content.includes("</body>")
       ? f.content.replace("</body>", `${tag}</body>`)
       : f.content + tag;
@@ -53,6 +56,10 @@ interface WebContainerPreviewProps {
   selecting?: boolean;
   /** Fired with the picked element's text + tag when the user clicks one. */
   onPick?: (info: { text: string; tag: string }) => void;
+  /** When true, text in the preview becomes directly editable. */
+  editingText?: boolean;
+  /** Fired with the original + new copy when the user edits text inline. */
+  onTextEdit?: (change: { from: string; to: string }) => void;
 }
 
 export function WebContainerPreview({
@@ -62,19 +69,27 @@ export function WebContainerPreview({
   onBuildError,
   selecting,
   onPick,
+  editingText,
+  onTextEdit,
 }: WebContainerPreviewProps) {
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const onPickRef = React.useRef(onPick);
+  const onTextEditRef = React.useRef(onTextEdit);
   React.useEffect(() => {
     onPickRef.current = onPick;
+    onTextEditRef.current = onTextEdit;
   });
 
-  // Receive element picks from the injected preview script.
+  // Receive element picks + inline text edits from the injected preview scripts.
   React.useEffect(() => {
     const handler = (e: MessageEvent) => {
-      const d = e.data as { type?: string; text?: string; tag?: string } | null;
+      const d = e.data as
+        | { type?: string; text?: string; tag?: string; from?: string; to?: string }
+        | null;
       if (d && d.type === "foundrr:picked") {
         onPickRef.current?.({ text: d.text ?? "", tag: d.tag ?? "" });
+      } else if (d && d.type === "foundrr:textedit" && d.from && d.to) {
+        onTextEditRef.current?.({ from: d.from, to: d.to });
       }
     };
     window.addEventListener("message", handler);
@@ -216,6 +231,14 @@ export function WebContainerPreview({
     );
   }, [selecting, url]);
 
+  // Toggle inline text-edit mode inside the preview iframe.
+  React.useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "foundrr:edit-text", on: !!editingText },
+      "*",
+    );
+  }, [editingText, url]);
+
   if (status === "error") {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
@@ -249,10 +272,12 @@ export function WebContainerPreview({
           />
         ) : null}
 
-        {selecting ? (
+        {selecting || editingText ? (
           <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center p-3">
             <span className="rounded-full bg-foreground/90 px-3 py-1.5 text-[12px] font-medium text-background shadow-lg backdrop-blur">
-              Dəyişmək istədiyin hissəyə toxun
+              {editingText
+                ? "Mətnə toxun, yaz, Enter ilə yadda saxla"
+                : "Dəyişmək istədiyin hissəyə toxun"}
             </span>
           </div>
         ) : null}

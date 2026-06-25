@@ -176,8 +176,13 @@ export async function POST(request: Request) {
     }
     const parsed = JSON.parse(
       completion.choices[0]?.message?.content ?? "{}",
-    ) as { name?: string; files?: Array<{ path: string; content: string }> };
+    ) as {
+      name?: string;
+      schema?: string;
+      files?: Array<{ path: string; content: string }>;
+    };
     const files = Array.isArray(parsed.files) ? parsed.files : [];
+    const schema = typeof parsed.schema === "string" ? parsed.schema.trim() : "";
     if (files.length === 0) {
       return NextResponse.json({ error: "Sayt yaradıla bilmədi." }, { status: 502 });
     }
@@ -195,10 +200,14 @@ export async function POST(request: Request) {
           name: parsed.name ?? "Yeni sayt",
           prompt,
           status: "built",
+          schema: schema || null,
         })
         .select("id")
         .single();
       siteId = site?.id;
+    } else if (mode === "edit" && siteId && schema) {
+      // An edit that introduces/extends the backend updates the stored schema.
+      await supabase.from("sites").update({ schema }).eq("id", siteId).eq("owner_id", user.id);
     }
 
     if (siteId) {
