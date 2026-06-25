@@ -406,7 +406,12 @@ function ConnectionsTab() {
 
       <div className="mt-6 rounded-2xl border border-border p-5">
         <div className="flex items-center justify-between">
-          <span className="text-[15px] font-semibold">Vercel</span>
+          <span className="flex items-center gap-2 text-[15px] font-semibold">
+            <svg viewBox="0 0 76 65" aria-hidden className="h-3.5 w-3.5 fill-current">
+              <path d="M37.53 0 75.06 65H0z" />
+            </svg>
+            Vercel
+          </span>
           {connected.vercel ? (
             <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-emerald-600">
               <Check className="h-3.5 w-3.5" /> Qoşuldu
@@ -420,6 +425,9 @@ function ConnectionsTab() {
           href="/api/connections/vercel/authorize"
           className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-foreground text-[13px] font-medium text-background transition-colors hover:bg-foreground/90"
         >
+          <svg viewBox="0 0 76 65" aria-hidden className="h-3.5 w-3.5 fill-current">
+            <path d="M37.53 0 75.06 65H0z" />
+          </svg>
           Vercel ilə qoşul
         </a>
         <p className="mt-3 text-[11px] text-muted-foreground">və ya token ilə qoş:</p>
