@@ -246,29 +246,86 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
     persistFile(path, content);
   };
 
+  /** Replace an exact string across all files (free + instant). Returns whether
+   *  anything changed; adds a note only when `note` is non-empty. */
+  const replaceInFiles = (oldStr: string, newStr: string, note: string): boolean => {
+    if (!oldStr || oldStr === newStr) return false;
+    const next = files.map((f) =>
+      f.content.includes(oldStr) ? { ...f, content: f.content.split(oldStr).join(newStr) } : f,
+    );
+    const changed = next.filter((f, i) => f.content !== files[i]?.content);
+    if (changed.length === 0) return false;
+    setFiles(next);
+    changed.forEach((f) => persistFile(f.path, f.content));
+    if (note) {
+      setBlocks((prev) => [...prev, { id: makeId(), type: "note", text: note, tone: "ok" }]);
+    }
+    return true;
+  };
+
   /** Inline visual text edit (#5) — replace exact copy across the project (free). */
   const applyTextReplace = (from: string, to: string) => {
     const oldText = from.trim();
     const newText = to.trim();
-    if (!oldText || oldText === newText) return;
-    const next = files.map((f) =>
-      f.content.includes(oldText)
-        ? { ...f, content: f.content.split(oldText).join(newText) }
-        : f,
+    replaceInFiles(
+      oldText,
+      newText,
+      `Mətn dəyişdirildi: “${oldText.slice(0, 36)}” → “${newText.slice(0, 36)}”`,
     );
-    const changed = next.filter((f, i) => f.content !== files[i]?.content);
-    if (changed.length === 0) return;
-    setFiles(next);
-    changed.forEach((f) => persistFile(f.path, f.content));
-    setBlocks((prev) => [
-      ...prev,
-      {
-        id: makeId(),
-        type: "note",
-        text: `Mətn dəyişdirildi: “${oldText.slice(0, 36)}” → “${newText.slice(0, 36)}”`,
-        tone: "ok",
-      },
-    ]);
+  };
+
+  /** Upload an image to Supabase Storage and return its public URL (or null). */
+  const uploadImageFile = async (file: File): Promise<string | null> => {
+    try {
+      const supabase = createClient();
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${Date.now()}-${safe}`;
+      const { error } = await supabase.storage.from("uploads").upload(path, file, { upsert: false });
+      if (error) return null;
+      const { data } = supabase.storage.from("uploads").getPublicUrl(path);
+      return data.publicUrl;
+    } catch {
+      return null;
+    }
+  };
+
+  // Image clicked in the preview → open a picker → upload → swap its src everywhere.
+  const pendingImgSrc = React.useRef<string | null>(null);
+  const imgReplaceInputRef = React.useRef<HTMLInputElement>(null);
+
+  const onImageReplace = (src: string) => {
+    pendingImgSrc.current = src;
+    imgReplaceInputRef.current?.click();
+  };
+
+  const onImageReplaceFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    const oldSrc = pendingImgSrc.current;
+    pendingImgSrc.current = null;
+    if (imgReplaceInputRef.current) imgReplaceInputRef.current.value = "";
+    if (!file || !oldSrc || !file.type.startsWith("image/")) return;
+
+    const noteId = makeId();
+    setBlocks((prev) => [...prev, { id: noteId, type: "note", text: "Şəkil yüklənir…", tone: "ok" }]);
+    const url = await uploadImageFile(file);
+    if (!url) {
+      patchBlock(noteId, (b) =>
+        b.type === "note" ? { ...b, text: "Şəkil yüklənmədi.", tone: "err" } : b,
+      );
+      return;
+    }
+    const ok = replaceInFiles(oldSrc, url, "");
+    patchBlock(noteId, (b) =>
+      b.type === "note"
+        ? ok
+          ? { ...b, text: "Şəkil dəyişdirildi ✓", tone: "ok" }
+          : {
+              ...b,
+              text: "Bu şəkli mənbədə tapmaq olmadı — çatda dəyişməyi xahiş et.",
+              tone: "err",
+            }
+        : b,
+    );
   };
 
   /** User clicked an element in the preview — target it in the chat for an edit. */
@@ -1182,6 +1239,7 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
           onElementPick={onElementPick}
           onChangeFile={editFileContent}
           onTextReplace={applyTextReplace}
+          onImageReplace={onImageReplace}
         />
       </div>
 
@@ -1210,6 +1268,15 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
           Önizləmə
         </button>
       </div>
+
+      {/* Hidden picker for replacing an image clicked in the preview. */}
+      <input
+        ref={imgReplaceInputRef}
+        type="file"
+        accept="image/*"
+        onChange={onImageReplaceFile}
+        className="hidden"
+      />
 
       <PublishPanel
         open={publishOpen}

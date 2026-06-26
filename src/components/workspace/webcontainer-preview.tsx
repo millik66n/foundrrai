@@ -34,10 +34,13 @@ const SELECT_SCRIPT = `(function(){var on=false,last=null;function clr(){if(last
 /** Inline text-edit script: click a text node, type, and on blur report from→to. */
 const EDIT_TEXT_SCRIPT = `(function(){var on=false,orig=null,node=null;function end(){if(node){node.removeAttribute('contenteditable');var now=((node.innerText||node.textContent||'')+'').trim();if(orig!=null&&now&&now!==orig){parent.postMessage({type:'foundrr:textedit',from:orig,to:now},'*');}node.style.outline='';node.style.cursor='';}node=null;orig=null;}function editable(el){return el&&el.childElementCount===0&&((el.innerText||'')+'').trim().length>0;}window.addEventListener('message',function(e){var d=e.data||{};if(d&&d.type==='foundrr:edit-text'){on=!!d.on;if(!on)end();}});document.addEventListener('mouseover',function(e){if(!on||node)return;var el=e.target;if(editable(el)){el.style.outline='1px dashed #7735E9';el.style.cursor='text';}},true);document.addEventListener('mouseout',function(e){if(!on||node)return;var el=e.target;if(el&&el!==node){el.style.outline='';el.style.cursor='';}},true);document.addEventListener('click',function(e){if(!on)return;var el=e.target;if(node){if(el!==node)end();return;}if(editable(el)){e.preventDefault();e.stopPropagation();node=el;orig=((el.innerText||el.textContent||'')+'').trim();el.setAttribute('contenteditable','true');el.style.outline='2px solid #7735E9';el.focus();}},true);document.addEventListener('keydown',function(e){if(!on||!node)return;if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();node.blur();}else if(e.key==='Escape'){orig=null;node.blur();}},true);document.addEventListener('blur',function(e){if(on&&node&&e.target===node)end();},true);})();`;
 
+/** Image-replace script: highlight images, click one to report its src for swapping. */
+const IMG_SCRIPT = `(function(){var on=false,last=null;function clr(){if(last&&last.style){last.style.outline='';last.style.outlineOffset='';last.style.cursor='';}last=null;}window.addEventListener('message',function(e){var d=e.data||{};if(d&&d.type==='foundrr:edit-image'){on=!!d.on;if(!on)clr();}});document.addEventListener('mouseover',function(e){if(!on)return;var el=e.target;if(el&&el.tagName==='IMG'){clr();last=el;el.style.outline='3px solid #7735E9';el.style.outlineOffset='2px';el.style.cursor='pointer';}},true);document.addEventListener('mouseout',function(e){if(!on)return;if(e.target===last)clr();},true);document.addEventListener('click',function(e){if(!on)return;var el=e.target;if(el&&el.tagName==='IMG'){e.preventDefault();e.stopPropagation();var s=el.getAttribute('src')||el.currentSrc||el.src||'';parent.postMessage({type:'foundrr:imgpick',src:s},'*');clr();}},true);})();`;
+
 function withSelector(files: ProjectFile[]): ProjectFile[] {
   return files.map((f) => {
     if (f.path !== "index.html") return f;
-    const tag = `<script>${SELECT_SCRIPT}</script><script>${EDIT_TEXT_SCRIPT}</script>`;
+    const tag = `<script>${SELECT_SCRIPT}</script><script>${EDIT_TEXT_SCRIPT}</script><script>${IMG_SCRIPT}</script>`;
     const content = f.content.includes("</body>")
       ? f.content.replace("</body>", `${tag}</body>`)
       : f.content + tag;
@@ -60,6 +63,14 @@ interface WebContainerPreviewProps {
   editingText?: boolean;
   /** Fired with the original + new copy when the user edits text inline. */
   onTextEdit?: (change: { from: string; to: string }) => void;
+  /** When true, clicking an image in the preview reports its src for replacing. */
+  editingImage?: boolean;
+  /** Fired with the clicked image's src so the parent can upload + swap it. */
+  onImagePick?: (info: { src: string }) => void;
+  /** Increment to force a fresh preview reload (the toolbar refresh button). */
+  reloadSignal?: number;
+  /** Reports the live preview URL (for the "open in new tab" button). */
+  onUrl?: (url: string) => void;
 }
 
 export function WebContainerPreview({
@@ -71,25 +82,35 @@ export function WebContainerPreview({
   onPick,
   editingText,
   onTextEdit,
+  editingImage,
+  onImagePick,
+  reloadSignal,
+  onUrl,
 }: WebContainerPreviewProps) {
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const onPickRef = React.useRef(onPick);
   const onTextEditRef = React.useRef(onTextEdit);
+  const onImagePickRef = React.useRef(onImagePick);
+  const onUrlRef = React.useRef(onUrl);
   React.useEffect(() => {
     onPickRef.current = onPick;
     onTextEditRef.current = onTextEdit;
+    onImagePickRef.current = onImagePick;
+    onUrlRef.current = onUrl;
   });
 
-  // Receive element picks + inline text edits from the injected preview scripts.
+  // Receive element picks + inline text/image edits from the injected scripts.
   React.useEffect(() => {
     const handler = (e: MessageEvent) => {
       const d = e.data as
-        | { type?: string; text?: string; tag?: string; from?: string; to?: string }
+        | { type?: string; text?: string; tag?: string; from?: string; to?: string; src?: string }
         | null;
       if (d && d.type === "foundrr:picked") {
         onPickRef.current?.({ text: d.text ?? "", tag: d.tag ?? "" });
       } else if (d && d.type === "foundrr:textedit" && d.from && d.to) {
         onTextEditRef.current?.({ from: d.from, to: d.to });
+      } else if (d && d.type === "foundrr:imgpick" && d.src) {
+        onImagePickRef.current?.({ src: d.src });
       }
     };
     window.addEventListener("message", handler);
@@ -109,6 +130,20 @@ export function WebContainerPreview({
     },
     [],
   );
+
+  // Report the live URL up to the toolbar (for "open in new tab").
+  React.useEffect(() => {
+    if (url) onUrlRef.current?.(url);
+  }, [url]);
+
+  // Toolbar refresh button → force a fresh reload.
+  const lastReloadSignal = React.useRef(reloadSignal ?? 0);
+  React.useEffect(() => {
+    if (reloadSignal !== undefined && reloadSignal !== lastReloadSignal.current) {
+      lastReloadSignal.current = reloadSignal;
+      setReloadKey((k) => k + 1);
+    }
+  }, [reloadSignal]);
 
   // Keep the latest error callback + a reset-able "last reported" guard in refs.
   const onBuildErrorRef = React.useRef(onBuildError);
@@ -255,6 +290,14 @@ export function WebContainerPreview({
     );
   }, [editingText, url]);
 
+  // Toggle image-replace mode inside the preview iframe.
+  React.useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "foundrr:edit-image", on: !!editingImage },
+      "*",
+    );
+  }, [editingImage, url]);
+
   if (status === "error") {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
@@ -286,21 +329,24 @@ export function WebContainerPreview({
             className="h-full w-full bg-white"
             allow="cross-origin-isolated"
             onLoad={() => {
-              // Re-arm select / inline-text-edit modes after each (re)load — the
-              // auto-reload swaps the document and resets the injected scripts.
+              // Re-arm the edit modes after each (re)load — the auto-reload swaps
+              // the document and resets the injected scripts.
               const win = iframeRef.current?.contentWindow;
               win?.postMessage({ type: "foundrr:select", on: !!selecting }, "*");
               win?.postMessage({ type: "foundrr:edit-text", on: !!editingText }, "*");
+              win?.postMessage({ type: "foundrr:edit-image", on: !!editingImage }, "*");
             }}
           />
         ) : null}
 
-        {selecting || editingText ? (
+        {selecting || editingText || editingImage ? (
           <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center p-3">
             <span className="rounded-full bg-foreground/90 px-3 py-1.5 text-[12px] font-medium text-background shadow-lg backdrop-blur">
-              {editingText
-                ? "Mətnə toxun, yaz, Enter ilə yadda saxla"
-                : "Dəyişmək istədiyin hissəyə toxun"}
+              {editingImage
+                ? "Dəyişmək üçün bir şəklə toxun"
+                : editingText
+                  ? "Mətnə toxun, yaz, Enter ilə yadda saxla"
+                  : "Dəyişmək istədiyin hissəyə toxun"}
             </span>
           </div>
         ) : null}

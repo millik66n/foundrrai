@@ -3,10 +3,14 @@
 import * as React from "react";
 import {
   Code2,
+  ExternalLink,
   Eye,
+  Globe,
+  ImageIcon,
   Monitor,
   MousePointerClick,
   Rocket,
+  RotateCw,
   Smartphone,
   Type,
 } from "lucide-react";
@@ -24,6 +28,8 @@ interface ProjectFile {
 
 type Tab = "preview" | "code";
 type Device = "desktop" | "mobile";
+/** One active visual-edit tool at a time. */
+type EditMode = null | "text" | "select" | "image";
 
 interface PreviewPaneProps {
   phase: Phase;
@@ -39,6 +45,18 @@ interface PreviewPaneProps {
   onChangeFile?: (path: string, content: string) => void;
   /** Inline visual text edit — replace an exact piece of copy across the project. */
   onTextReplace?: (oldText: string, newText: string) => void;
+  /** Image clicked in the preview — upload a replacement and swap its src. */
+  onImageReplace?: (oldSrc: string) => void;
+}
+
+function slugify(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 30) || "sayt"
+  );
 }
 
 export function PreviewPane({
@@ -53,82 +71,84 @@ export function PreviewPane({
   onElementPick,
   onChangeFile,
   onTextReplace,
+  onImageReplace,
 }: PreviewPaneProps) {
   const [tab, setTab] = React.useState<Tab>("preview");
   const [device, setDevice] = React.useState<Device>("desktop");
-  const [selecting, setSelecting] = React.useState(false);
-  const [editingText, setEditingText] = React.useState(false);
+  const [mode, setMode] = React.useState<EditMode>(null);
+  const [reloadSignal, setReloadSignal] = React.useState(0);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const built = phase === "built" && files.length > 0;
   const buildKey = siteId ?? "draft";
+  const fauxUrl = `${slugify(siteName || "sayt")}.foundrr.app`;
 
-  // "Seç" and "Mətn" modes are mutually exclusive — turning one on disables the other.
-  const toggleSelecting = () =>
-    setSelecting((s) => {
-      if (!s) setEditingText(false);
-      return !s;
-    });
-  const toggleEditingText = () =>
-    setEditingText((t) => {
-      if (!t) setSelecting(false);
-      return !t;
-    });
+  const toggleMode = (m: Exclude<EditMode, null>) =>
+    setMode((cur) => (cur === m ? null : m));
 
   return (
     <section className="relative flex min-w-0 flex-1 flex-col bg-muted/30">
-      {/* Top bar */}
-      <div className="flex h-14 items-center gap-3 border-b border-border bg-background/60 px-4 backdrop-blur">
+      {/* ── Toolbar — a browser-like chrome, Lovable-style ── */}
+      <div className="flex h-14 items-center gap-2 border-b border-border bg-background/60 px-3 backdrop-blur">
         {built ? (
-          <div className="flex items-center rounded-xl border border-border bg-card p-0.5">
-            <TabButton active={tab === "preview"} onClick={() => setTab("preview")} icon={Eye}>
-              Önizləmə
-            </TabButton>
-            <TabButton active={tab === "code"} onClick={() => setTab("code")} icon={Code2}>
-              Kod
-            </TabButton>
-          </div>
-        ) : (
-          <span className="flex gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-foreground/15" />
-            <span className="h-3 w-3 rounded-full bg-foreground/15" />
-            <span className="h-3 w-3 rounded-full bg-foreground/15" />
-          </span>
-        )}
+          <>
+            <div className="flex shrink-0 items-center rounded-xl border border-border bg-card p-0.5">
+              <TabButton active={tab === "preview"} onClick={() => setTab("preview")} icon={Eye}>
+                Önizləmə
+              </TabButton>
+              <TabButton active={tab === "code"} onClick={() => setTab("code")} icon={Code2}>
+                Kod
+              </TabButton>
+            </div>
 
-        <span className="mx-auto truncate rounded-full bg-card px-4 py-1 font-mono text-[12px] text-muted-foreground">
-          {built ? siteName : "önizləmə"}
-        </span>
-
-        {built ? (
-          <div className="flex items-center gap-2">
             {tab === "preview" ? (
               <>
+                {/* address bar */}
                 <button
-                  onClick={toggleEditingText}
-                  title="Mətnə toxunub birbaşa yaz"
-                  className={cn(
-                    "inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[13px] font-medium transition-colors",
-                    editingText
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-card text-muted-foreground hover:text-foreground",
-                  )}
+                  onClick={() => setReloadSignal((s) => s + 1)}
+                  title="Yenilə"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <Type className="h-3.5 w-3.5" />
-                  Mətn
+                  <RotateCw className="h-4 w-4" />
                 </button>
+                <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-3">
+                  <Globe className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="truncate font-mono text-[12px] text-muted-foreground">
+                    {fauxUrl}
+                  </span>
+                </div>
                 <button
-                  onClick={toggleSelecting}
-                  title="Elementi seçib dəyiş"
-                  className={cn(
-                    "inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[13px] font-medium transition-colors",
-                    selecting
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-card text-muted-foreground hover:text-foreground",
-                  )}
+                  onClick={() => previewUrl && window.open(previewUrl, "_blank", "noopener")}
+                  disabled={!previewUrl}
+                  title="Yeni tabda aç"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
                 >
-                  <MousePointerClick className="h-3.5 w-3.5" />
-                  Seç
+                  <ExternalLink className="h-4 w-4" />
                 </button>
-                <div className="flex items-center rounded-xl border border-border bg-card p-0.5">
+
+                {/* visual-edit tools */}
+                <div className="flex shrink-0 items-center rounded-xl border border-border bg-card p-0.5">
+                  <ToolButton
+                    active={mode === "text"}
+                    onClick={() => toggleMode("text")}
+                    label="Mətni dəyiş"
+                    icon={Type}
+                  />
+                  <ToolButton
+                    active={mode === "select"}
+                    onClick={() => toggleMode("select")}
+                    label="Elementi seç"
+                    icon={MousePointerClick}
+                  />
+                  <ToolButton
+                    active={mode === "image"}
+                    onClick={() => toggleMode("image")}
+                    label="Şəkli dəyiş"
+                    icon={ImageIcon}
+                  />
+                </div>
+
+                {/* device */}
+                <div className="hidden shrink-0 items-center rounded-xl border border-border bg-card p-0.5 sm:flex">
                   <IconToggle
                     active={device === "desktop"}
                     onClick={() => setDevice("desktop")}
@@ -143,23 +163,38 @@ export function PreviewPane({
                   />
                 </div>
               </>
-            ) : null}
+            ) : (
+              <span className="mx-auto truncate rounded-full bg-card px-4 py-1 font-mono text-[12px] text-muted-foreground">
+                {siteName}
+              </span>
+            )}
+
             <button
               onClick={onPublish}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground shadow-[0_10px_24px_-12px_hsl(var(--primary)/0.7)] transition-all hover:-translate-y-0.5 hover:bg-[hsl(var(--primary-hover))]"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground shadow-[0_10px_24px_-12px_hsl(var(--primary)/0.7)] transition-all hover:-translate-y-0.5 hover:bg-[hsl(var(--primary-hover))]"
             >
               <Rocket className="h-3.5 w-3.5" />
               Yayımla
             </button>
-          </div>
+          </>
         ) : (
-          <span className="rounded-md bg-card px-2 py-1 font-mono text-[10px] text-muted-foreground">
-            qurulur
-          </span>
+          <>
+            <span className="flex gap-1.5">
+              <span className="h-3 w-3 rounded-full bg-foreground/15" />
+              <span className="h-3 w-3 rounded-full bg-foreground/15" />
+              <span className="h-3 w-3 rounded-full bg-foreground/15" />
+            </span>
+            <span className="mx-auto truncate rounded-full bg-card px-4 py-1 font-mono text-[12px] text-muted-foreground">
+              önizləmə
+            </span>
+            <span className="rounded-md bg-card px-2 py-1 font-mono text-[10px] text-muted-foreground">
+              qurulur
+            </span>
+          </>
         )}
       </div>
 
-      {/* Body */}
+      {/* ── Body ── */}
       <div className="min-h-0 flex-1">
         {!built ? (
           <BuildingCanvas phase={phase} />
@@ -172,13 +207,17 @@ export function PreviewPane({
                 device={device}
                 buildKey={buildKey}
                 onBuildError={onBuildError}
-                selecting={selecting}
+                selecting={mode === "select"}
                 onPick={(info) => {
-                  setSelecting(false);
+                  setMode(null);
                   onElementPick?.(info);
                 }}
-                editingText={editingText}
+                editingText={mode === "text"}
                 onTextEdit={({ from, to }) => onTextReplace?.(from, to)}
+                editingImage={mode === "image"}
+                onImagePick={({ src }) => onImageReplace?.(src)}
+                reloadSignal={reloadSignal}
+                onUrl={setPreviewUrl}
               />
             </div>
             <div className={cn("absolute inset-0", tab === "code" ? "z-10" : "hidden")}>
@@ -213,13 +252,40 @@ function TabButton({
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors",
-        active
-          ? "bg-foreground text-background"
-          : "text-muted-foreground hover:text-foreground",
+        active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
       )}
     >
       <Icon className="h-3.5 w-3.5" />
       {children}
+    </button>
+  );
+}
+
+/** Active visual-edit tool — highlighted in the accent colour. */
+function ToolButton({
+  active,
+  onClick,
+  label,
+  icon: Icon,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+        active
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      <Icon className="h-4 w-4" />
     </button>
   );
 }
@@ -239,6 +305,7 @@ function IconToggle({
     <button
       onClick={onClick}
       aria-label={label}
+      title={label}
       className={cn(
         "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
         active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
