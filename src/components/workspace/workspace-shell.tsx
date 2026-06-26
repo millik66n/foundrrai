@@ -71,6 +71,11 @@ export function WorkspaceShell({ name, email, credits, plan, sites }: WorkspaceS
     setGreeting(greetingFor(name));
   }, [name]);
 
+  // Send the one-time welcome email (server is idempotent; safe to call on load).
+  React.useEffect(() => {
+    fetch("/api/welcome", { method: "POST" }).catch(() => {});
+  }, []);
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     const prompt = value.trim();

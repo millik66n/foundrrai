@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, Lock, Mail } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -36,6 +36,7 @@ interface AuthFormProps {
 export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
   const isSignup = mode === "signup";
   const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState<Loading>(null);
   const [sent, setSent] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -58,38 +59,68 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
     }
   };
 
-  const sendMagicLink = async (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!email.trim()) return;
-    setError(null);
-    setLoading("email");
-    const { error } = await createClient().auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: callbackUrl() },
-    });
-    setLoading(null);
-    if (error) {
-      setError("E-poçt göndərilə bilmədi. Bir azdan yenidən cəhd et.");
+    const mail = email.trim();
+    if (!mail || !password) return;
+    if (isSignup && password.length < 6) {
+      setError("Şifrə ən azı 6 simvol olmalıdır.");
       return;
     }
-    setSent(true);
+    setError(null);
+    setLoading("email");
+    const supabase = createClient();
+
+    if (isSignup) {
+      const { data, error } = await supabase.auth.signUp({
+        email: mail,
+        password,
+        options: { emailRedirectTo: callbackUrl() },
+      });
+      setLoading(null);
+      if (error) {
+        setError(
+          /registered|exists/i.test(error.message)
+            ? "Bu e-poçt artıq qeydiyyatdadır. Daxil ol."
+            : "Hesab yaradıla bilmədi. Bir azdan yenidən cəhd et.",
+        );
+        return;
+      }
+      // Email confirmation OFF → session is ready; ON → ask them to confirm.
+      if (data.session) {
+        window.location.assign(next);
+      } else {
+        setSent(true);
+      }
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({ email: mail, password });
+    setLoading(null);
+    if (error) {
+      setError(
+        /not confirmed/i.test(error.message)
+          ? "E-poçtunu təsdiqlə — sənə təsdiq linki göndərdik."
+          : "E-poçt və ya şifrə yanlışdır.",
+      );
+      return;
+    }
+    window.location.assign(next);
   };
 
   if (sent) {
     return (
       <div className="w-full max-w-[400px] text-center">
         <span className="brand-mark mx-auto block h-7 w-7 rounded-lg" />
-        <h1 className="mt-8 text-[24px] font-semibold tracking-tight">
-          E-poçtunu yoxla
-        </h1>
+        <h1 className="mt-8 text-[24px] font-semibold tracking-tight">E-poçtunu təsdiqlə</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          <span className="font-medium text-foreground">{email}</span> ünvanına
-          giriş linki göndərdik. Linkə klik et — və davam et.
+          <span className="font-medium text-foreground">{email}</span> ünvanına təsdiq
+          linki göndərdik. Linkə klik et — və davam et.
         </p>
         <button
           onClick={() => {
             setSent(false);
-            setEmail("");
+            setPassword("");
           }}
           className="mt-6 text-[14px] font-medium text-foreground underline-offset-4 hover:underline"
         >
@@ -132,11 +163,7 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
           disabled={loading !== null}
           onClick={() => oauth("google")}
         >
-          {loading === "google" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <GoogleGlyph />
-          )}
+          {loading === "google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleGlyph />}
           Google ilə davam et
         </Button>
         <Button
@@ -146,11 +173,7 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
           disabled={loading !== null}
           onClick={() => oauth("github")}
         >
-          {loading === "github" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <GithubGlyph />
-          )}
+          {loading === "github" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GithubGlyph />}
           GitHub ilə davam et
         </Button>
       </div>
@@ -161,7 +184,7 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
         <span className="h-px flex-1 bg-border" />
       </div>
 
-      <form className="flex flex-col gap-2.5" onSubmit={sendMagicLink}>
+      <form className="flex flex-col gap-2.5" onSubmit={submit}>
         <div className="relative">
           <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -175,6 +198,19 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
             className="h-12 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/60 focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
+        <div className="relative">
+          <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="password"
+            autoComplete={isSignup ? "new-password" : "current-password"}
+            required
+            minLength={6}
+            placeholder={isSignup ? "Şifrə (ən azı 6 simvol)" : "Şifrə"}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="h-12 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/60 focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
         <Button
           variant="primary"
           size="lg"
@@ -182,10 +218,8 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
           className="w-full"
           disabled={loading !== null}
         >
-          {loading === "email" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : null}
-          E-poçt ilə davam et
+          {loading === "email" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {isSignup ? "Hesab yarat" : "Daxil ol"}
         </Button>
       </form>
 
