@@ -1197,6 +1197,11 @@ export function ProjectBuilder({
                     : "Planı dəyiş və ya nəsə əlavə et…"
               }
               disabled={busy}
+              spellCheck={false}
+              autoComplete="off"
+              data-gramm="false"
+              data-gramm_editor="false"
+              data-enable-grammarly="false"
               className="block max-h-[140px] min-h-[24px] w-full resize-none bg-transparent px-1.5 pt-1 text-[14px] leading-relaxed outline-none placeholder:text-muted-foreground disabled:opacity-50"
             />
             <div className="mt-2 flex items-center justify-between">

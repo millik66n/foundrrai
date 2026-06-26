@@ -130,6 +130,11 @@ export function PromptBox({
             value={value}
             onChange={(event) => setValue(event.target.value)}
             onKeyDown={onKeyDown}
+            spellCheck={false}
+            autoComplete="off"
+            data-gramm="false"
+            data-gramm_editor="false"
+            data-enable-grammarly="false"
             className="block w-full resize-none bg-transparent text-[16px] leading-relaxed text-foreground outline-none placeholder:text-transparent"
           />
         </div>
