@@ -59,14 +59,37 @@ function errMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Xəta baş verdi.";
 }
 
-async function callGenerate(payload: Record<string, unknown>) {
+interface GenerateResult {
+  error?: string;
+  credits?: number;
+  plan?: string[];
+  needsLogo?: boolean;
+  reply?: string;
+  files?: ProjectFile[];
+  name?: string;
+  siteId?: string;
+}
+
+async function callGenerate(payload: Record<string, unknown>): Promise<GenerateResult> {
   const res = await fetch("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error ?? "Xəta baş verdi.");
+  const text = await res.text();
+  let data: GenerateResult;
+  try {
+    data = (text ? JSON.parse(text) : {}) as GenerateResult;
+  } catch {
+    // A non-JSON body means the platform killed the request before our handler
+    // answered — almost always a timeout on a large build.
+    throw new Error(
+      res.status === 504 || res.status === 408 || res.status === 503
+        ? "Server vaxtı bitdi — sayt çox böyük ola bilər. Bir az sadələşdirib yenidən cəhd et."
+        : "Server cavab vermədi. Bir az sonra yenidən cəhd et.",
+    );
+  }
+  if (!res.ok) throw new Error(data.error ?? "Xəta baş verdi.");
   return data;
 }
 

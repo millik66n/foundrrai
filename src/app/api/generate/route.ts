@@ -12,7 +12,6 @@ import {
   PLAN_SYSTEM,
   type GenerateMode,
 } from "@/lib/ai/engine";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -63,36 +62,35 @@ export async function POST(request: Request) {
     );
   }
 
-  // Credits — atomically deducted up-front (race-free), refunded on any failure.
+  // Credits — verify the balance up-front (cheap), then deduct ATOMICALLY only
+  // AFTER the work succeeds. So if the function times out or crashes mid-build,
+  // the deduction simply never runs and the user is never charged for nothing.
   const cost = CREDIT_COSTS[mode];
-  let creditsAfter = 0;
   if (cost > 0) {
-    const { data: deducted, error: deductError } = await supabase.rpc("deduct_credits", {
-      p_cost: cost,
-    });
-    if (deductError) {
-      return NextResponse.json({ error: "Kredit yoxlanıla bilmədi." }, { status: 500 });
-    }
-    if (deducted === null || deducted === undefined) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("credits")
-        .eq("id", user.id)
-        .single();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("credits")
+      .eq("id", user.id)
+      .single();
+    if ((profile?.credits ?? 0) < cost) {
       return NextResponse.json(
         { error: "Kredit kifayət etmir.", credits: profile?.credits ?? 0 },
         { status: 402 },
       );
     }
-    creditsAfter = deducted as number;
   }
-  const refundCredits = async () => {
-    if (cost <= 0) return;
-    try {
-      await createAdminClient().rpc("increment_credits", { p_user: user.id, p_delta: cost });
-    } catch {
-      /* best-effort refund */
+  // Atomic charge — called only on success. Returns the new balance.
+  const chargeCredits = async (): Promise<number> => {
+    if (cost > 0) {
+      const { data } = await supabase.rpc("deduct_credits", { p_cost: cost });
+      if (typeof data === "number") return data;
     }
+    const { data: p } = await supabase
+      .from("profiles")
+      .select("credits")
+      .eq("id", user.id)
+      .single();
+    return p?.credits ?? 0;
   };
 
   const docExtras = (body.docs ?? [])
@@ -124,10 +122,11 @@ export async function POST(request: Request) {
         completion.choices[0]?.message?.content ?? "{}",
       ) as { plan?: string[]; needsLogo?: boolean };
 
+      const credits = await chargeCredits();
       return NextResponse.json({
         plan: parsed.plan ?? [],
         needsLogo: parsed.needsLogo ?? true,
-        credits: creditsAfter,
+        credits,
       });
     }
 
@@ -151,7 +150,8 @@ export async function POST(request: Request) {
       const parsed = JSON.parse(
         completion.choices[0]?.message?.content ?? "{}",
       ) as { reply?: string };
-      return NextResponse.json({ reply: parsed.reply ?? "—", credits: creditsAfter });
+      const credits = await chargeCredits();
+      return NextResponse.json({ reply: parsed.reply ?? "—", credits });
     }
 
     // build | edit
@@ -198,7 +198,6 @@ export async function POST(request: Request) {
     const files = Array.isArray(parsed.files) ? parsed.files : [];
     const schema = typeof parsed.schema === "string" ? parsed.schema.trim() : "";
     if (files.length === 0) {
-      await refundCredits();
       return NextResponse.json({ error: "Sayt yaradıla bilmədi." }, { status: 502 });
     }
 
@@ -216,8 +215,6 @@ export async function POST(request: Request) {
         .select("id")
         .single();
       if (insertError || !site?.id) {
-        // Don't charge for a build we failed to save.
-        await refundCredits();
         return NextResponse.json({ error: "Sayt yadda saxlanmadı." }, { status: 500 });
       }
       siteId = site.id;
@@ -253,14 +250,14 @@ export async function POST(request: Request) {
       }
     }
 
+    const credits = await chargeCredits();
     return NextResponse.json({
       siteId,
       name: parsed.name,
       files,
-      credits: creditsAfter,
+      credits,
     });
   } catch {
-    await refundCredits();
     return NextResponse.json({ error: "Generasiya xətası baş verdi." }, { status: 500 });
   }
 }
