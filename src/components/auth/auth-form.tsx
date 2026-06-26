@@ -39,6 +39,8 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState<Loading>(null);
   const [sent, setSent] = React.useState(false);
+  const [resetSent, setResetSent] = React.useState(false);
+  const [view, setView] = React.useState<"main" | "forgot">("main");
   const [error, setError] = React.useState<string | null>(null);
 
   const callbackUrl = () =>
@@ -108,6 +110,23 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
     window.location.assign(next);
   };
 
+  const sendReset = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const mail = email.trim();
+    if (!mail) return;
+    setError(null);
+    setLoading("email");
+    const { error } = await createClient().auth.resetPasswordForEmail(mail, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset`,
+    });
+    setLoading(null);
+    if (error) {
+      setError("Link göndərilə bilmədi. Bir azdan yenidən cəhd et.");
+      return;
+    }
+    setResetSent(true);
+  };
+
   if (sent) {
     return (
       <div className="w-full max-w-[400px] text-center">
@@ -125,6 +144,90 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
           className="mt-6 text-[14px] font-medium text-foreground underline-offset-4 hover:underline"
         >
           Başqa e-poçt işlət
+        </button>
+      </div>
+    );
+  }
+
+  if (resetSent) {
+    return (
+      <div className="w-full max-w-[400px] text-center">
+        <span className="brand-mark mx-auto block h-7 w-7 rounded-lg" />
+        <h1 className="mt-8 text-[24px] font-semibold tracking-tight">E-poçtunu yoxla</h1>
+        <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+          <span className="font-medium text-foreground">{email}</span> ünvanına şifrə
+          sıfırlama linki göndərdik. Linkə klik et və yeni şifrə təyin et.
+        </p>
+        <button
+          onClick={() => {
+            setResetSent(false);
+            setView("main");
+          }}
+          className="mt-6 text-[14px] font-medium text-foreground underline-offset-4 hover:underline"
+        >
+          Girişə qayıt
+        </button>
+      </div>
+    );
+  }
+
+  if (view === "forgot") {
+    return (
+      <div className="w-full max-w-[400px]">
+        <Link
+          href="/"
+          className="flex items-center justify-center gap-2 font-semibold tracking-tight"
+        >
+          <span className="brand-mark h-7 w-7 rounded-lg shadow-[0_6px_18px_-6px_hsl(var(--grad-pink)/0.7)]" />
+          <span className="text-lg">Foundrr</span>
+        </Link>
+        <h1 className="mt-8 text-center text-[26px] font-semibold tracking-tight">
+          Şifrəni sıfırla
+        </h1>
+        <p className="mt-2 text-center text-[15px] leading-relaxed text-muted-foreground">
+          E-poçtunu yaz — sənə yeni şifrə təyin etmək üçün link göndərək.
+        </p>
+
+        {error ? (
+          <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-center text-[13px] text-destructive">
+            {error}
+          </p>
+        ) : null}
+
+        <form className="mt-6 flex flex-col gap-2.5" onSubmit={sendReset}>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              required
+              placeholder="ad@nümunə.az"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="h-12 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/60 focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+          <Button
+            variant="primary"
+            size="lg"
+            type="submit"
+            className="w-full"
+            disabled={loading !== null}
+          >
+            {loading === "email" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Sıfırlama linki göndər
+          </Button>
+        </form>
+
+        <button
+          onClick={() => {
+            setView("main");
+            setError(null);
+          }}
+          className="mt-6 block w-full text-center text-[14px] font-medium text-foreground underline-offset-4 hover:underline"
+        >
+          Girişə qayıt
         </button>
       </div>
     );
@@ -211,6 +314,18 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
             className="h-12 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/60 focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
+        {!isSignup ? (
+          <button
+            type="button"
+            onClick={() => {
+              setView("forgot");
+              setError(null);
+            }}
+            className="-mt-0.5 self-end text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Şifrəni unutdun?
+          </button>
+        ) : null}
         <Button
           variant="primary"
           size="lg"
