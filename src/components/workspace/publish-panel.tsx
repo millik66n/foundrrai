@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Copy, ExternalLink, Globe, Loader2, Rocket, X } from "lucide-react";
+import { Check, Copy, ExternalLink, Globe, Loader2, Rocket, Sparkles, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -19,9 +19,11 @@ interface PublishPanelProps {
   onClose: () => void;
   siteId: string | null;
   siteName?: string;
+  plan?: string;
 }
 
-export function PublishPanel({ open, onClose, siteId, siteName }: PublishPanelProps) {
+export function PublishPanel({ open, onClose, siteId, siteName, plan }: PublishPanelProps) {
+  const isFree = (plan ?? "free") === "free";
   const [connected, setConnected] = React.useState<Record<string, boolean>>({});
   const [publishing, setPublishing] = React.useState(false);
   const [url, setUrl] = React.useState<string | null>(null);
@@ -125,11 +127,35 @@ export function PublishPanel({ open, onClose, siteId, siteName }: PublishPanelPr
             </div>
           </div>
 
-          {/* connections */}
-          <div className="mt-4 space-y-2">
-            <StatusRow label="Vercel" sub="Hosting və canlı URL" ok={vercelConnected} />
-            <StatusRow label="Supabase" sub="Form bazası (istəyə görə)" ok={!!connected.supabase} />
-          </div>
+          {isFree ? (
+            <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/[0.05] p-6 text-center">
+              <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Rocket className="h-5 w-5" />
+              </span>
+              <p className="mt-3.5 text-[16px] font-semibold">Yayım Pro plandadır</p>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                Saytı öz Vercel hesabına yayımlamaq, öz domenini bağlamaq və kodu GitHub-a
+                göndərmək Pro planında mövcuddur.
+              </p>
+              <a
+                href="/workspace?settings=plan"
+                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-[14px] font-semibold text-primary-foreground shadow-[0_14px_30px_-12px_hsl(var(--primary)/0.7)] transition-all hover:-translate-y-0.5 hover:bg-[hsl(var(--primary-hover))]"
+              >
+                <Sparkles className="h-4 w-4" />
+                Pro-ya keç
+              </a>
+            </div>
+          ) : (
+            <>
+              {/* connections */}
+              <div className="mt-4 space-y-2">
+                <StatusRow label="Vercel" sub="Hosting və canlı URL" ok={vercelConnected} />
+                <StatusRow
+                  label="Supabase"
+                  sub="Form bazası (istəyə görə)"
+                  ok={!!connected.supabase}
+                />
+              </div>
 
           {/* website info (SEO + sharing) */}
           <div className="mt-4 rounded-2xl border border-border p-4">
@@ -236,11 +262,15 @@ export function PublishPanel({ open, onClose, siteId, siteName }: PublishPanelPr
               )}
             </div>
           ) : null}
+            </>
+          )}
 
           <p className="mt-3 text-center text-[12px] leading-relaxed text-muted-foreground">
             {url
               ? "Domen almaq üçün istənilən registratordan al və Vercel-də bağla."
-              : "Hesabları Parametrlər → Bağlantılar bölməsindən də qoşa bilərsən."}
+              : isFree
+                ? "Pulsuz planda saytı qurub redaktə edə bilərsən — yayım Pro-dadır."
+                : "Hesabları Parametrlər → Bağlantılar bölməsindən də qoşa bilərsən."}
           </p>
         </div>
       </div>

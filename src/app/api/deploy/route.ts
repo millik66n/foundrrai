@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getConnection, getFreshSupabaseToken } from "@/lib/connections";
+import { isPaidPlan } from "@/lib/stripe/plans";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -73,6 +74,19 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Daxil olmaq lazımdır." }, { status: 401 });
+  }
+
+  // Publishing to the user's own Vercel is a paid (Pro/Max) feature.
+  const { data: planRow } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", user.id)
+    .single();
+  if (!isPaidPlan(planRow?.plan)) {
+    return NextResponse.json(
+      { error: "Yayım Pro plandadır. Pro-ya keç.", upgrade: true },
+      { status: 403 },
+    );
   }
 
   let body: DeployBody;

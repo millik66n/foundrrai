@@ -133,7 +133,13 @@ function readPromptCookie(): string | null {
   return decodeURIComponent(m[1]);
 }
 
-export function ProjectBuilder({ credits: initialCredits }: { credits: number }) {
+export function ProjectBuilder({
+  credits: initialCredits,
+  plan = "free",
+}: {
+  credits: number;
+  plan?: string;
+}) {
   const router = useRouter();
   const [prompt, setPrompt] = React.useState("");
   const [phase, setPhase] = React.useState<Phase>("thinking");
@@ -1317,6 +1323,7 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
         onClose={() => setPublishOpen(false)}
         siteId={siteId}
         siteName={siteName}
+        plan={plan}
       />
 
       <CheckpointsPanel
