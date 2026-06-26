@@ -38,7 +38,6 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState<Loading>(null);
-  const [sent, setSent] = React.useState(false);
   const [resetSent, setResetSent] = React.useState(false);
   const [view, setView] = React.useState<"main" | "forgot">("main");
   const [error, setError] = React.useState<string | null>(null);
@@ -74,11 +73,7 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
     const supabase = createClient();
 
     if (isSignup) {
-      const { data, error } = await supabase.auth.signUp({
-        email: mail,
-        password,
-        options: { emailRedirectTo: callbackUrl() },
-      });
+      const { data, error } = await supabase.auth.signUp({ email: mail, password });
       setLoading(null);
       if (error) {
         setError(
@@ -88,11 +83,12 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
         );
         return;
       }
-      // Email confirmation OFF → session is ready; ON → ask them to confirm.
+      // Instant signup — no confirmation link. (If a session isn't returned, email
+      // confirmation is still ON in Supabase; turn it off in Auth → Providers → Email.)
       if (data.session) {
         window.location.assign(next);
       } else {
-        setSent(true);
+        setError("Hesab yaradıldı. İndi e-poçt və şifrə ilə daxil ol.");
       }
       return;
     }
@@ -126,28 +122,6 @@ export function AuthForm({ mode, next = "/workspace" }: AuthFormProps) {
     }
     setResetSent(true);
   };
-
-  if (sent) {
-    return (
-      <div className="w-full max-w-[400px] text-center">
-        <span className="brand-mark mx-auto block h-7 w-7 rounded-lg" />
-        <h1 className="mt-8 text-[24px] font-semibold tracking-tight">E-poçtunu təsdiqlə</h1>
-        <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          <span className="font-medium text-foreground">{email}</span> ünvanına təsdiq
-          linki göndərdik. Linkə klik et — və davam et.
-        </p>
-        <button
-          onClick={() => {
-            setSent(false);
-            setPassword("");
-          }}
-          className="mt-6 text-[14px] font-medium text-foreground underline-offset-4 hover:underline"
-        >
-          Başqa e-poçt işlət
-        </button>
-      </div>
-    );
-  }
 
   if (resetSent) {
     return (
