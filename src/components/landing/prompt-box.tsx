@@ -83,7 +83,8 @@ export function PromptBox({
       // sessionStorage (per-tab) is empty — the cookie carries the idea across.
       document.cookie = `foundrr_prompt=${encodeURIComponent(trimmed)}; path=/; max-age=1800; samesite=lax`;
     }
-    router.push("/signup?intent=build");
+    // Land straight in the builder so the prompt auto-runs after signup (no extra click).
+    router.push("/signup?intent=build&next=/workspace/build");
   }, [router, value]);
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {

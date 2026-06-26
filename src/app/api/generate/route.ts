@@ -15,7 +15,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+// Request the platform maximum; Vercel caps this to the plan's limit automatically.
+export const maxDuration = 300;
 
 interface GenerateBody {
   mode?: GenerateMode;
@@ -25,6 +26,8 @@ interface GenerateBody {
   logoUrl?: string;
   docs?: Array<{ name: string; content: string }>;
   knowledge?: string;
+  /** A timed-out build retries with this on — uses the faster model to fit the budget. */
+  fast?: boolean;
 }
 
 const VALID_MODES: ReadonlyArray<GenerateMode> = ["plan", "build", "edit", "fix", "chat"];
@@ -158,7 +161,13 @@ export async function POST(request: Request) {
     const system =
       mode === "build" ? BUILD_SYSTEM : mode === "fix" ? FIX_SYSTEM : EDIT_SYSTEM;
     const model =
-      mode === "build" ? MODELS.build : mode === "fix" ? MODELS.fix : MODELS.edit;
+      mode === "build"
+        ? body.fast
+          ? BUILD_FALLBACK_MODEL
+          : MODELS.build
+        : mode === "fix"
+          ? MODELS.fix
+          : MODELS.edit;
     const userContent =
       ((mode === "edit" || mode === "fix") && body.files
         ? `Cari fayllar:\n${JSON.stringify(body.files)}\n\nTapşırıq: ${prompt}`

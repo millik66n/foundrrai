@@ -123,6 +123,16 @@ function clampPhase(p: Phase | undefined): Phase {
   return p ?? "built";
 }
 
+/** Read + clear the cross-tab landing-prompt cookie (set by the prompt box) so the
+ *  idea auto-runs after signup even if sessionStorage didn't carry across. */
+function readPromptCookie(): string | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(/(?:^|;\s*)foundrr_prompt=([^;]*)/);
+  if (!m) return null;
+  document.cookie = "foundrr_prompt=; path=/; max-age=0; samesite=lax";
+  return decodeURIComponent(m[1]);
+}
+
 export function ProjectBuilder({ credits: initialCredits }: { credits: number }) {
   const router = useRouter();
   const [prompt, setPrompt] = React.useState("");
@@ -483,7 +493,7 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
 
     const params = new URLSearchParams(window.location.search);
     const urlSite = params.get("site");
-    const fresh = window.sessionStorage.getItem(PROMPT_STORAGE_KEY);
+    const fresh = window.sessionStorage.getItem(PROMPT_STORAGE_KEY) ?? readPromptCookie();
     const saved = loadSession();
 
     // 0. Remix a template → seed the builder with that template's brief.
@@ -700,7 +710,27 @@ export function ProjectBuilder({ credits: initialCredits }: { credits: number })
     ]);
     setPhase("building");
     try {
-      const data = await callGenerate({ mode: "build", prompt, logoUrl, docs, knowledge });
+      let data: GenerateResult;
+      try {
+        data = await callGenerate({ mode: "build", prompt, logoUrl, docs, knowledge });
+      } catch (e) {
+        // A timed-out heavy build → retry once in fast mode. Free: credits only
+        // charge on success, so the failed first attempt cost nothing.
+        if (/vaxtı bitdi|cavab vermədi/i.test(errMessage(e))) {
+          setBlocks((prev) => [
+            ...prev,
+            {
+              id: makeId(),
+              type: "note",
+              text: "Böyük sayt — daha sürətli rejimdə yenidən cəhd edirəm…",
+              tone: "ok",
+            },
+          ]);
+          data = await callGenerate({ mode: "build", prompt, logoUrl, docs, knowledge, fast: true });
+        } else {
+          throw e;
+        }
+      }
       const built: ProjectFile[] = data.files ?? [];
       const changes = toFileChanges(built, new Set());
       setFiles(built);
