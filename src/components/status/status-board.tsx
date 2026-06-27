@@ -15,6 +15,7 @@ import type {
   HealthComponent,
   HealthReport,
 } from "@/lib/health/checks";
+import type { UptimeHistory } from "@/lib/health/history";
 
 const REFRESH_INTERVAL_MS = 30_000;
 
@@ -35,25 +36,29 @@ const ACCENT: Record<string, string> = {
 
 const STATUS_UI: Record<
   ComponentStatus,
-  { dot: string; pill: string; label: string }
+  { dot: string; bar: string; pill: string; label: string }
 > = {
   operational: {
     dot: "bg-[hsl(152_62%_40%)]",
+    bar: "bg-[hsl(152_62%_42%)]",
     pill: "bg-[hsl(152_62%_40%/0.12)] text-[hsl(152_50%_28%)]",
     label: "İşləkdir",
   },
   degraded: {
     dot: "bg-[hsl(38_92%_50%)]",
+    bar: "bg-[hsl(38_92%_50%)]",
     pill: "bg-[hsl(38_92%_50%/0.16)] text-[hsl(30_72%_34%)]",
     label: "Qismən",
   },
   down: {
     dot: "bg-[hsl(var(--destructive))]",
+    bar: "bg-[hsl(var(--destructive))]",
     pill: "bg-[hsl(var(--destructive)/0.12)] text-[hsl(var(--destructive))]",
     label: "İşləmir",
   },
   unknown: {
     dot: "bg-muted-foreground/50",
+    bar: "bg-muted",
     pill: "bg-muted text-muted-foreground",
     label: "Naməlum",
   },
@@ -88,44 +93,86 @@ function relativeTime(sinceMs: number, nowMs: number): string {
   return `${h} saat əvvəl`;
 }
 
-function ComponentRow({ component }: { component: HealthComponent }) {
+function ComponentCard({
+  component,
+  history,
+}: {
+  component: HealthComponent;
+  history?: UptimeHistory[string];
+}) {
   const ui = STATUS_UI[component.status];
   const Icon = ICONS[component.key] ?? Globe;
   const accent = ACCENT[component.key] ?? "bg-muted text-muted-foreground";
+
+  // Always show the live status on today's (last) bar.
+  const days = history?.days ?? [];
+  const uptimeLabel =
+    history?.uptime != null ? `${history.uptime}% işlək` : "məlumat toplanır";
+
   return (
-    <li className="flex items-center gap-4 px-4 py-4 transition-colors hover:bg-muted/30 sm:px-5">
-      <div
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${accent}`}
-      >
-        <Icon className="h-5 w-5" />
-      </div>
+    <div className="rounded-2xl border border-border bg-card/60 p-4 shadow-[0_18px_50px_-34px_hsl(240_22%_13%/0.25)] sm:p-5">
+      <div className="flex items-center gap-4">
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${accent}`}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
 
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-medium text-foreground">
-          {component.name}
-        </p>
-        <p className="truncate text-[13px] text-muted-foreground">
-          {component.description}
-        </p>
-      </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-medium text-foreground">
+            {component.name}
+          </p>
+          <p className="truncate text-[13px] text-muted-foreground">
+            {component.description}
+          </p>
+        </div>
 
-      {component.responseMs != null ? (
-        <span className="hidden shrink-0 tabular-nums text-[12px] text-muted-foreground sm:inline">
-          {component.responseMs} ms
+        {component.responseMs != null ? (
+          <span className="hidden shrink-0 tabular-nums text-[12px] text-muted-foreground sm:inline">
+            {component.responseMs} ms
+          </span>
+        ) : null}
+
+        <span
+          className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium ${ui.pill}`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${ui.dot}`} />
+          {component.detail ?? ui.label}
         </span>
-      ) : null}
+      </div>
 
-      <span
-        className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium ${ui.pill}`}
-      >
-        <span className={`h-1.5 w-1.5 rounded-full ${ui.dot}`} />
-        {component.detail ?? ui.label}
-      </span>
-    </li>
+      {days.length > 0 ? (
+        <div className="mt-4">
+          <div className="flex h-8 items-stretch gap-[2px]">
+            {days.map((d, i) => {
+              const status = i === days.length - 1 ? component.status : d.status;
+              return (
+                <span
+                  key={d.date}
+                  title={`${d.date} — ${STATUS_UI[status].label}`}
+                  className={`flex-1 rounded-[1.5px] transition-opacity hover:opacity-70 ${STATUS_UI[status].bar}`}
+                />
+              );
+            })}
+          </div>
+          <div className="mt-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>90 gün əvvəl</span>
+            <span className="font-medium">{uptimeLabel}</span>
+            <span>bu gün</span>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
-export function StatusBoard({ initial }: { initial: HealthReport }) {
+export function StatusBoard({
+  initial,
+  history,
+}: {
+  initial: HealthReport;
+  history: UptimeHistory;
+}) {
   const [report, setReport] = React.useState<HealthReport>(initial);
   const [updatedAt, setUpdatedAt] = React.useState<number>(() => Date.now());
   const [now, setNow] = React.useState<number>(() => Date.now());
@@ -202,16 +249,14 @@ export function StatusBoard({ initial }: { initial: HealthReport }) {
         </div>
       </section>
 
-      {/* Component list */}
-      <section className="mt-5 overflow-hidden rounded-2xl border border-border bg-card/60 shadow-[0_18px_50px_-34px_hsl(240_22%_13%/0.25)]">
-        <ul className="divide-y divide-border">
-          {report.components.map((c) => (
-            <ComponentRow key={c.key} component={c} />
-          ))}
-        </ul>
-      </section>
+      {/* Per-service cards with uptime history */}
+      <div className="mt-5 space-y-3">
+        {report.components.map((c) => (
+          <ComponentCard key={c.key} component={c} history={history[c.key]} />
+        ))}
+      </div>
 
-      <p className="mt-4 text-center text-[12px] text-muted-foreground">
+      <p className="mt-5 text-center text-[12px] text-muted-foreground">
         Hər 30 saniyədə avtomatik yenilənir
       </p>
     </div>

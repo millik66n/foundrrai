@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getHealthReport } from "@/lib/health/checks";
+import { getUptimeHistory, maybeRecordSnapshot } from "@/lib/health/history";
 import { StatusBoard } from "@/components/status/status-board";
 
 // Status must always reflect live state.
@@ -16,6 +17,11 @@ export const metadata: Metadata = {
 
 export default async function StatusPage() {
   const report = await getHealthReport();
+  await maybeRecordSnapshot(report);
+  const history = await getUptimeHistory(
+    report.components.map((c) => c.key),
+    90,
+  );
 
   return (
     <main className="relative mx-auto flex min-h-screen w-full max-w-2xl flex-col px-5 py-10 sm:py-16">
@@ -35,20 +41,7 @@ export default async function StatusPage() {
         <span className="text-[13px] text-muted-foreground">Sistem vəziyyəti</span>
       </header>
 
-      <StatusBoard initial={report} />
-
-      <footer className="mt-8 flex flex-wrap items-center justify-center gap-4 text-[13px] text-muted-foreground">
-        <Link href="/" className="transition-colors hover:text-foreground">
-          Ana səhifə
-        </Link>
-        <span aria-hidden>·</span>
-        <Link
-          href="/api/status"
-          className="transition-colors hover:text-foreground"
-        >
-          JSON API
-        </Link>
-      </footer>
+      <StatusBoard initial={report} history={history} />
     </main>
   );
 }
