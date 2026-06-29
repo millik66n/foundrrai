@@ -151,64 +151,45 @@
   }
 }
 
-/* Hero — visible gradient field on first paint (works with .bloom-hero). */
+/* Hero — Lovable-style mesh wash (color blobs + bright center; blur on .bloom-hero). */
 .hero-surface {
+  background: hsl(var(--background));
+  isolation: isolate;
+}
+
+.bloom-hero {
+  inset: -18% -10% -12%;
+  height: auto;
+  min-height: 100%;
   background:
-    radial-gradient(ellipse 90% 70% at 50% -8%, hsl(var(--grad-violet) / 0.22), transparent 68%),
-    radial-gradient(ellipse 55% 50% at 0% 45%, hsl(var(--grad-blue) / 0.16), transparent 70%),
-    radial-gradient(ellipse 55% 50% at 100% 45%, hsl(var(--grad-pink) / 0.14), transparent 70%),
-    linear-gradient(
-      180deg,
-      hsl(var(--background)) 0%,
-      hsl(var(--grad-violet) / 0.06) 42%,
-      hsl(var(--background)) 100%
-    );
+    radial-gradient(ellipse 78% 58% at 50% 6%, hsl(0 0% 100% / 0.92), transparent 62%),
+    radial-gradient(ellipse 62% 52% at -2% -4%, hsl(var(--grad-blue) / 0.58), transparent 56%),
+    radial-gradient(ellipse 62% 52% at 102% -4%, hsl(var(--grad-violet) / 0.52), transparent 56%),
+    radial-gradient(ellipse 54% 58% at -10% 44%, hsl(var(--grad-blue) / 0.44), transparent 58%),
+    radial-gradient(ellipse 54% 58% at 110% 40%, hsl(var(--grad-violet) / 0.46), transparent 58%),
+    radial-gradient(ellipse 56% 48% at 6% 104%, hsl(var(--grad-pink) / 0.5), transparent 54%),
+    radial-gradient(ellipse 56% 48% at 94% 104%, hsl(var(--grad-blue) / 0.42), transparent 54%),
+    radial-gradient(ellipse 50% 44% at 50% 108%, hsl(var(--grad-orange) / 0.46), transparent 52%);
+  filter: blur(76px) saturate(124%);
+  transform: translateZ(0);
 }
 
 @media (prefers-color-scheme: dark) {
   .hero-surface {
-    background:
-      radial-gradient(ellipse 90% 70% at 50% -8%, hsl(var(--grad-violet) / 0.14), transparent 68%),
-      radial-gradient(ellipse 55% 50% at 0% 45%, hsl(var(--grad-blue) / 0.1), transparent 70%),
-      radial-gradient(ellipse 55% 50% at 100% 45%, hsl(var(--grad-pink) / 0.08), transparent 70%),
-      linear-gradient(
-        180deg,
-        hsl(var(--background)) 0%,
-        hsl(var(--grad-violet) / 0.04) 42%,
-        hsl(var(--background)) 100%
-      );
+    background: hsl(var(--background));
   }
-}
 
-/* ---------- Signature: vivid gradient blooms (light) ---------- */
-.bloom {
-  position: absolute;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.bloom-hero {
-  inset: 0;
-  height: 100%;
-  min-height: 720px;
-  background:
-    hsl(var(--background)),
-    radial-gradient(ellipse 42% 58% at 8% 42%, hsl(var(--grad-blue) / 0.24), transparent 72%),
-    radial-gradient(ellipse 42% 58% at 92% 42%, hsl(var(--grad-violet) / 0.2), transparent 72%),
-    radial-gradient(ellipse 55% 38% at 50% 8%, hsl(var(--grad-pink) / 0.14), transparent 68%),
-    radial-gradient(ellipse 48% 32% at 72% 88%, hsl(var(--grad-orange) / 0.12), transparent 70%);
-  filter: saturate(112%) blur(48px);
-}
-
-@media (prefers-color-scheme: dark) {
   .bloom-hero {
     background:
-      hsl(var(--background)),
-      radial-gradient(ellipse 42% 58% at 8% 42%, hsl(var(--grad-blue) / 0.16), transparent 72%),
-      radial-gradient(ellipse 42% 58% at 92% 42%, hsl(var(--grad-violet) / 0.14), transparent 72%),
-      radial-gradient(ellipse 55% 38% at 50% 8%, hsl(var(--grad-pink) / 0.1), transparent 68%),
-      radial-gradient(ellipse 48% 32% at 72% 88%, hsl(var(--grad-orange) / 0.08), transparent 70%);
-    filter: saturate(108%) blur(52px);
+      radial-gradient(ellipse 78% 58% at 50% 6%, hsl(var(--background) / 0.72), transparent 62%),
+      radial-gradient(ellipse 62% 52% at -2% -4%, hsl(var(--grad-blue) / 0.34), transparent 56%),
+      radial-gradient(ellipse 62% 52% at 102% -4%, hsl(var(--grad-violet) / 0.3), transparent 56%),
+      radial-gradient(ellipse 54% 58% at -10% 44%, hsl(var(--grad-blue) / 0.26), transparent 58%),
+      radial-gradient(ellipse 54% 58% at 110% 40%, hsl(var(--grad-violet) / 0.28), transparent 58%),
+      radial-gradient(ellipse 56% 48% at 6% 104%, hsl(var(--grad-pink) / 0.3), transparent 54%),
+      radial-gradient(ellipse 56% 48% at 94% 104%, hsl(var(--grad-blue) / 0.24), transparent 54%),
+      radial-gradient(ellipse 50% 44% at 50% 108%, hsl(var(--grad-orange) / 0.28), transparent 52%);
+    filter: blur(84px) saturate(118%);
   }
 
   .bloom-closing {
@@ -218,6 +199,13 @@
   .dot-grid {
     background-image: radial-gradient(hsl(var(--foreground) / 0.07) 1px, transparent 1.5px);
   }
+}
+
+/* ---------- Signature: vivid gradient blooms (light) ---------- */
+.bloom {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* Soft brand backdrop for the workspace shell — gentle, not a glow blob */
@@ -562,7 +550,7 @@
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
-    filter: saturate(118%) blur(26px) !important;
+    filter: saturate(124%) blur(76px) !important;
   }
   .animate-fade-up {
     opacity: 1 !important;

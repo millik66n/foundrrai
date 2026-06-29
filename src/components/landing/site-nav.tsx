@@ -44,7 +44,7 @@ export function SiteNav({ user }: { user?: NavUser | null }) {
         "fixed inset-x-0 top-0 z-50 border-b transition-all duration-300",
         scrolled
           ? "border-border bg-background/88 backdrop-blur-xl shadow-[0_1px_12px_hsl(var(--foreground)/0.04)]"
-          : "border-border/60 bg-background/80 backdrop-blur-md",
+          : "border-transparent bg-transparent backdrop-blur-none",
       )}
     >
       <nav className="mx-auto flex h-[72px] max-w-[1180px] items-center justify-between px-5 sm:px-6">

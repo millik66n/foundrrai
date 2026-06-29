@@ -44,13 +44,13 @@ export function PromptBox({
   // Typewriter placeholder: type an idea, pause, delete it, type the next — looping.
   React.useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const timer = setTimeout(() => setTyped(PLACEHOLDERS[0]), 0);
-      return () => clearTimeout(timer);
+      const timer = window.setTimeout(() => setTyped(PLACEHOLDERS[0]), 0);
+      return () => window.clearTimeout(timer);
     }
     let phrase = 0;
     let char = 0;
     let deleting = false;
-    let timer: ReturnType<typeof setTimeout>;
+    let timer: number;
     const tick = () => {
       const full = PLACEHOLDERS[phrase];
       if (!deleting) {
@@ -58,24 +58,24 @@ export function PromptBox({
         setTyped(full.slice(0, char));
         if (char >= full.length) {
           deleting = true;
-          timer = setTimeout(tick, 1600); // hold the full idea
+          timer = window.setTimeout(tick, 1600); // hold the full idea
           return;
         }
-        timer = setTimeout(tick, 45 + Math.random() * 45);
+        timer = window.setTimeout(tick, 45 + Math.random() * 45);
       } else {
         char -= 1;
         setTyped(full.slice(0, char));
         if (char <= 0) {
           deleting = false;
           phrase = (phrase + 1) % PLACEHOLDERS.length;
-          timer = setTimeout(tick, 380); // pause before the next idea
+          timer = window.setTimeout(tick, 380); // pause before the next idea
           return;
         }
-        timer = setTimeout(tick, 24 + Math.random() * 26);
+        timer = window.setTimeout(tick, 24 + Math.random() * 26);
       }
     };
-    timer = setTimeout(tick, 700);
-    return () => clearTimeout(timer);
+    timer = window.setTimeout(tick, 700);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const submit = React.useCallback(() => {

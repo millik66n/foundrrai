@@ -261,7 +261,7 @@ function PromptDemo({
     setTyped("");
     setReady(false);
     let char = 0;
-    let timer: ReturnType<typeof setTimeout>;
+    let timer: number;
 
     const finish = () => {
       if (doneRef.current) return;
